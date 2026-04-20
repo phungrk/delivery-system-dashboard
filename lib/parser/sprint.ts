@@ -150,7 +150,7 @@ export function loadSprintFile(projectCode: string): SprintFile {
 
   // Pick latest sprint-*.md or project.md or board.md
   const files = fs.readdirSync(dir).filter((f) =>
-    f.match(/^(project-tracking|sprint-\d+|project|board)\.md$/)
+    f.match(/^(project-tracking|sprint-\d+|project|board)\.(md|txt)$/)
   ).sort().reverse();
 
   if (files.length === 0) {

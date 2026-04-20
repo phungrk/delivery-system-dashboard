@@ -13,7 +13,7 @@ function findSprintFile(projectCode: string): string | null {
   const dir = findProjectDir(INPUT_DIR, projectCode);
   if (!dir) return null;
   const files = fs.readdirSync(dir)
-    .filter((f) => f.match(/^(project-tracking|sprint-\d+|project|board)\.md$/))
+    .filter((f) => f.match(/^(project-tracking|sprint-\d+|project|board)\.(md|txt)$/))
     .sort()
     .reverse();
   return files.length > 0 ? path.join(dir, files[0]) : null;
