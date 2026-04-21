@@ -26,8 +26,10 @@ export type SprintFile = {
   projectCode: string;
   projectName: string;
   type: string;
+  currentPhase: string; // e.g. "verification" or "design | implementation"
   periodStart: string;
   periodEnd: string;
+  milestones: Record<string, string>; // phase name (lowercase) → yyyy-mm-dd
   tasks: Task[];
   timeLogByTask: Record<string, number>; // taskId → total hours logged
   warnings: string[];
@@ -115,6 +117,16 @@ function parseTasks(content: string, projectCode: string, today: string): Task[]
     });
 }
 
+function parseMilestones(content: string): Record<string, string> {
+  const block = content.match(/## Milestones\s*\n([\s\S]*?)(?=\n##|$)/)?.[1] ?? "";
+  const result: Record<string, string> = {};
+  for (const line of block.split("\n")) {
+    const m = line.match(/^-\s*([^:]+):\s*(\d{4}-\d{2}-\d{2})/);
+    if (m) result[m[1].trim().toLowerCase()] = m[2];
+  }
+  return result;
+}
+
 function parseTimeLog(projectDir: string): Record<string, number> {
   const filePath = path.join(projectDir, "timelog.md");
   if (!fs.existsSync(filePath)) return {};
@@ -145,7 +157,7 @@ export function loadSprintFile(projectCode: string): SprintFile {
   const warnings: string[] = [];
 
   if (!dir) {
-    return { projectCode, projectName: projectCode, type: "", periodStart: "", periodEnd: "", tasks: [], timeLogByTask: {}, warnings: [`Folder not found for: ${projectCode}`] };
+    return { projectCode, projectName: projectCode, type: "", currentPhase: "", periodStart: "", periodEnd: "", milestones: {}, tasks: [], timeLogByTask: {}, warnings: [`Folder not found for: ${projectCode}`] };
   }
 
   // Pick latest sprint-*.md or project.md or board.md
@@ -154,7 +166,7 @@ export function loadSprintFile(projectCode: string): SprintFile {
   ).sort().reverse();
 
   if (files.length === 0) {
-    return { projectCode, projectName: projectCode, type: "", periodStart: "", periodEnd: "", tasks: [], timeLogByTask: {}, warnings: ["No sprint file found"] };
+    return { projectCode, projectName: projectCode, type: "", currentPhase: "", periodStart: "", periodEnd: "", milestones: {}, tasks: [], timeLogByTask: {}, warnings: ["No sprint file found"] };
   }
 
   const content = fs.readFileSync(path.join(dir, files[0]), "utf-8");
@@ -163,6 +175,7 @@ export function loadSprintFile(projectCode: string): SprintFile {
   // Header fields
   const projectName = content.match(/^#\s+(?:Sprint \d+[^—\n]*—\s*|Sprint \d+:\s*|Board:\s*|Project:\s*)?(.+)/m)?.[1]?.trim() ?? projectCode;
   const type = content.match(/^Type:\s*(.+)/m)?.[1]?.trim() ?? "";
+  const currentPhase = content.match(/^Current Phase:\s*(.+)/m)?.[1]?.trim() ?? "";
   const periodMatch = content.match(/Period:\s*(\d{4}-\d{2}-\d{2})\s*→\s*(\d{4}-\d{2}-\d{2})/);
   const sprintMatch = content.match(/Sprint:\s*(\d{4}-\d{2}-\d{2})\s*→\s*(\d{4}-\d{2}-\d{2})/);
   const m = periodMatch ?? sprintMatch;
@@ -171,8 +184,9 @@ export function loadSprintFile(projectCode: string): SprintFile {
 
   if (!periodStart) warnings.push("Missing period dates");
 
+  const milestones = parseMilestones(content);
   const tasks = parseTasks(content, projectCode, today);
   const timeLogByTask = parseTimeLog(dir);
 
-  return { projectCode, projectName, type, periodStart, periodEnd, tasks, timeLogByTask, warnings };
+  return { projectCode, projectName, type, currentPhase, periodStart, periodEnd, milestones, tasks, timeLogByTask, warnings };
 }

@@ -4,7 +4,7 @@ export type PhaseStatus = "Completed" | "On Track" | "At Risk" | "Delayed" | "To
 export type ProjectType = "Waterfall" | "Scrum";
 export type ProjectStatus = "On Track" | "At Risk" | "Delayed" | "Completed";
 export type Priority = "High" | "Medium" | "Low";
-export type TaskStatus = "Completed" | "In Progress" | "Pending" | "Overdue";
+export type TaskStatus = "To Do" | "In Progress" | "Blocked" | "Done";
 export type RiskLevel = "High" | "Medium" | "Low";
 export type RiskStatus = "Active" | "Mitigated" | "Closed";
 export type DepStatus = "Met" | "At Risk" | "Pending";
@@ -166,11 +166,11 @@ export const PROJECTS: Project[] = [
       { name: "Post", status: "To Do", endDate: "2026-07-31", progress: 0 },
     ],
     tasks: [
-      { id: "T001", name: "UI Component Library", assignee: "Emily Ho", deliverable: "Design System", status: "Completed", dueDate: "2026-02-15" },
+      { id: "T001", name: "UI Component Library", assignee: "Emily Ho", deliverable: "Design System", status: "Done", dueDate: "2026-02-15" },
       { id: "T002", name: "Product Catalog API", assignee: "Carol Le", deliverable: "Backend Service", status: "In Progress", dueDate: "2026-04-20" },
       { id: "T003", name: "Payment Integration", assignee: "Jack Chen", deliverable: "Payment Module", status: "In Progress", dueDate: "2026-04-25" },
-      { id: "T004", name: "Mobile Responsive Design", assignee: "Emily Ho", deliverable: "UI Templates", status: "Overdue", dueDate: "2026-04-10" },
-      { id: "T005", name: "Load Testing", assignee: "David Pham", deliverable: "Test Report", status: "Pending", dueDate: "2026-05-10" },
+      { id: "T004", name: "Mobile Responsive Design", assignee: "Emily Ho", deliverable: "UI Templates", status: "Blocked", dueDate: "2026-04-10" },
+      { id: "T005", name: "Load Testing", assignee: "David Pham", deliverable: "Test Report", status: "To Do", dueDate: "2026-05-10" },
     ],
     risks: [
       { id: "R001", title: "Third-party payment gateway API changes", status: "Active", impact: "High", probability: "Medium", owner: "Jack Chen", mitigation: "Monitor API changelog weekly; maintain fallback provider" },
@@ -235,11 +235,11 @@ export const PROJECTS: Project[] = [
       { name: "Post", status: "To Do", endDate: "2026-05-31", progress: 0 },
     ],
     tasks: [
-      { id: "T010", name: "SAP Connector Module", assignee: "Henry Dao", deliverable: "Integration Layer", status: "Overdue", dueDate: "2026-03-01" },
-      { id: "T011", name: "Data Migration Scripts", assignee: "Carol Le", deliverable: "Migration Package", status: "Overdue", dueDate: "2026-03-10" },
+      { id: "T010", name: "SAP Connector Module", assignee: "Henry Dao", deliverable: "Integration Layer", status: "Blocked", dueDate: "2026-03-01" },
+      { id: "T011", name: "Data Migration Scripts", assignee: "Carol Le", deliverable: "Migration Package", status: "Blocked", dueDate: "2026-03-10" },
       { id: "T012", name: "Inventory Sync Service", assignee: "Jack Chen", deliverable: "Sync Service", status: "In Progress", dueDate: "2026-04-05" },
-      { id: "T013", name: "UAT Test Plan", assignee: "David Pham", deliverable: "Test Documentation", status: "Pending", dueDate: "2026-04-15" },
-      { id: "T014", name: "Staff Training Material", assignee: "Grace Liu", deliverable: "Training Docs", status: "Pending", dueDate: "2026-05-01" },
+      { id: "T013", name: "UAT Test Plan", assignee: "David Pham", deliverable: "Test Documentation", status: "To Do", dueDate: "2026-04-15" },
+      { id: "T014", name: "Staff Training Material", assignee: "Grace Liu", deliverable: "Training Docs", status: "To Do", dueDate: "2026-05-01" },
     ],
     risks: [
       { id: "R010", title: "SAP API deprecation in Q2 2026", status: "Active", impact: "High", probability: "High", owner: "Henry Dao", mitigation: "Escalate to SAP vendor for migration path; assess alternative connectors" },
@@ -307,9 +307,9 @@ export const PROJECTS: Project[] = [
     ],
     tasks: [
       { id: "T020", name: "UX Wireframes", assignee: "Bob Tran", deliverable: "Design Files", status: "In Progress", dueDate: "2026-04-25" },
-      { id: "T021", name: "Security Architecture", assignee: "Frank Vo", deliverable: "Arch Document", status: "Overdue", dueDate: "2026-04-15" },
+      { id: "T021", name: "Security Architecture", assignee: "Frank Vo", deliverable: "Arch Document", status: "Blocked", dueDate: "2026-04-15" },
       { id: "T022", name: "Prototype — Login Flow", assignee: "Emily Ho", deliverable: "Interactive Prototype", status: "In Progress", dueDate: "2026-04-30" },
-      { id: "T023", name: "Biometric Auth Design", assignee: "Bob Tran", deliverable: "Technical Spec", status: "Pending", dueDate: "2026-05-10" },
+      { id: "T023", name: "Biometric Auth Design", assignee: "Bob Tran", deliverable: "Technical Spec", status: "To Do", dueDate: "2026-05-10" },
     ],
     risks: [
       { id: "R020", title: "Regulatory compliance approval delay", status: "Active", impact: "High", probability: "Medium", owner: "Bob Tran", mitigation: "Pre-submission review with legal team; early engagement with regulator" },
@@ -375,10 +375,10 @@ export const PROJECTS: Project[] = [
       endDate: "2026-05-02",
     },
     tasks: [
-      { id: "T030", name: "Ticket Submission Form", assignee: "Emily Ho", deliverable: "UI Component", status: "Completed", dueDate: "2026-04-18" },
+      { id: "T030", name: "Ticket Submission Form", assignee: "Emily Ho", deliverable: "UI Component", status: "Done", dueDate: "2026-04-18" },
       { id: "T031", name: "Notification Service", assignee: "Jack Chen", deliverable: "Backend Service", status: "In Progress", dueDate: "2026-04-28" },
       { id: "T032", name: "Email Templates", assignee: "Grace Liu", deliverable: "HTML Templates", status: "In Progress", dueDate: "2026-04-25" },
-      { id: "T033", name: "Accessibility Audit", assignee: "David Pham", deliverable: "Audit Report", status: "Pending", dueDate: "2026-05-02" },
+      { id: "T033", name: "Accessibility Audit", assignee: "David Pham", deliverable: "Audit Report", status: "To Do", dueDate: "2026-05-02" },
     ],
     risks: [
       { id: "R030", title: "ERP integration dependency delay", status: "Active", impact: "High", probability: "Medium", owner: "Iris Wong", mitigation: "Mock API layer in place; escalated to ERP team" },
@@ -444,11 +444,11 @@ export const PROJECTS: Project[] = [
       endDate: "2026-05-09",
     },
     tasks: [
-      { id: "T040", name: "Data Pipeline Architecture", assignee: "Henry Dao", deliverable: "Architecture Doc", status: "Completed", dueDate: "2026-03-15" },
+      { id: "T040", name: "Data Pipeline Architecture", assignee: "Henry Dao", deliverable: "Architecture Doc", status: "Done", dueDate: "2026-03-15" },
       { id: "T041", name: "Chart Rendering Engine", assignee: "Emily Ho", deliverable: "Chart Library", status: "In Progress", dueDate: "2026-04-30" },
-      { id: "T042", name: "Real-time WebSocket Feed", assignee: "Carol Le", deliverable: "WebSocket Service", status: "Overdue", dueDate: "2026-04-15" },
-      { id: "T043", name: "Dashboard Filters", assignee: "Emily Ho", deliverable: "Filter Components", status: "Overdue", dueDate: "2026-04-20" },
-      { id: "T044", name: "Export to PDF/CSV", assignee: "Jack Chen", deliverable: "Export Module", status: "Pending", dueDate: "2026-05-20" },
+      { id: "T042", name: "Real-time WebSocket Feed", assignee: "Carol Le", deliverable: "WebSocket Service", status: "Blocked", dueDate: "2026-04-15" },
+      { id: "T043", name: "Dashboard Filters", assignee: "Emily Ho", deliverable: "Filter Components", status: "Blocked", dueDate: "2026-04-20" },
+      { id: "T044", name: "Export to PDF/CSV", assignee: "Jack Chen", deliverable: "Export Module", status: "To Do", dueDate: "2026-05-20" },
     ],
     risks: [
       { id: "R040", title: "Real-time processing performance", status: "Active", impact: "High", probability: "High", owner: "Henry Dao", mitigation: "Performance profiling sprint; evaluate streaming alternatives" },
@@ -512,10 +512,10 @@ export const PROJECTS: Project[] = [
       endDate: "2026-03-31",
     },
     tasks: [
-      { id: "T050", name: "Service Mesh Setup", assignee: "Frank Vo", deliverable: "Infrastructure", status: "Completed", dueDate: "2026-01-31" },
-      { id: "T051", name: "Rate Limiting Module", assignee: "Carol Le", deliverable: "API Module", status: "Completed", dueDate: "2026-02-15" },
-      { id: "T052", name: "Monitoring Dashboard", assignee: "Frank Vo", deliverable: "Grafana Dashboards", status: "Completed", dueDate: "2026-03-15" },
-      { id: "T053", name: "Load Test Report", assignee: "David Pham", deliverable: "Performance Report", status: "Completed", dueDate: "2026-03-25" },
+      { id: "T050", name: "Service Mesh Setup", assignee: "Frank Vo", deliverable: "Infrastructure", status: "Done", dueDate: "2026-01-31" },
+      { id: "T051", name: "Rate Limiting Module", assignee: "Carol Le", deliverable: "API Module", status: "Done", dueDate: "2026-02-15" },
+      { id: "T052", name: "Monitoring Dashboard", assignee: "Frank Vo", deliverable: "Grafana Dashboards", status: "Done", dueDate: "2026-03-15" },
+      { id: "T053", name: "Load Test Report", assignee: "David Pham", deliverable: "Performance Report", status: "Done", dueDate: "2026-03-25" },
     ],
     risks: [
       { id: "R050", title: "Legacy service compatibility", status: "Closed", impact: "Medium", probability: "Low", owner: "Frank Vo", mitigation: "Adapter pattern implemented for all legacy services" },

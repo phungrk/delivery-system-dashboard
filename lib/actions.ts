@@ -169,6 +169,76 @@ export async function updateStatus(
   }
 }
 
+// ── updateMilestone ───────────────────────────────────────────────────────────
+
+const MILESTONE_PHASES = ["Design", "Implementation", "Verification", "Approval", "Release", "Post-Release"] as const;
+
+export async function updateMilestone(
+  projectCode: string,
+  phaseName: string,
+  date: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const filePath = findSprintFile(projectCode);
+    if (!filePath) return { ok: false, error: "Sprint file not found" };
+
+    let content = fs.readFileSync(filePath, "utf-8");
+    const milestoneHeader = "## Milestones";
+    const lineKey = phaseName; // e.g. "Design"
+
+    if (content.includes(milestoneHeader)) {
+      // Update existing section: find the phase line and replace its date
+      const lines = content.split("\n");
+      const sectionIdx = lines.findIndex((l) => l.trim() === milestoneHeader);
+      const nextSection = lines.findIndex((l, i) => i > sectionIdx && l.startsWith("## "));
+      const end = nextSection === -1 ? lines.length : nextSection;
+
+      // Try to find existing line for this phase (prefix-match, case-insensitive)
+      const norm = (s: string) => s.toLowerCase().replace(/[\s-]/g, "").slice(0, 5);
+      const np = norm(phaseName);
+      const phaseLineIdx = lines.findIndex((l, i) => {
+        if (i <= sectionIdx || i >= end) return false;
+        const m = l.match(/^-\s*([^:]+):/);
+        return m ? norm(m[1]).startsWith(np) || np.startsWith(norm(m[1])) : false;
+      });
+
+      if (phaseLineIdx !== -1) {
+        // Replace date on existing line
+        lines[phaseLineIdx] = lines[phaseLineIdx].replace(
+          /^(-\s*[^:]+:\s*).*$/,
+          `$1${date}`,
+        );
+      } else {
+        // Append new line inside the section (before next section or EOF)
+        lines.splice(end, 0, `- ${lineKey}: ${date}`);
+      }
+      content = lines.join("\n");
+    } else {
+      // Create the full Milestones section at the end of the file
+      const block = [
+        "",
+        milestoneHeader,
+        "",
+        ...MILESTONE_PHASES.map((p) => `- ${p}: ${p === phaseName ? date : ""}`),
+        "",
+      ].join("\n");
+      // Insert before ## Tasks if it exists, otherwise append at end
+      const tasksIdx = content.search(/^## Tasks/m);
+      if (tasksIdx !== -1) {
+        content = content.slice(0, tasksIdx).trimEnd() + "\n" + block + "\n\n" + content.slice(tasksIdx);
+      } else {
+        content = content.trimEnd() + block;
+      }
+    }
+
+    fs.writeFileSync(filePath, content, "utf-8");
+    revalidatePath(`/v2`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
 // ── updateTaskField ───────────────────────────────────────────────────────────
 
 export async function updateTaskField(

@@ -1,16 +1,90 @@
 import { loadAllMetricsMerged } from "@/lib/parser/metrics";
 import { loadSprintFile } from "@/lib/parser/sprint";
-import type { Project, Resource, Task, Risk, KPI } from "./mockData";
+import type { Project, Resource, Task, Risk, KPI, Phase, PhaseStatus } from "./mockData";
+
+// ── Waterfall phase generation ────────────────────────────────────────────────
+
+const WATERFALL_PHASES = [
+  "Design", "Implementation", "Verification", "Approval", "Release", "Post-Release",
+] as const;
+
+function rawToPhaseIndex(raw: string): number {
+  const s = raw.toLowerCase().trim();
+  if (s.includes("design") || s.includes("intake") || s.includes("plan") || s.includes("reqs")) return 0;
+  if (s.includes("impl") || s.includes("develop") || s.includes("build") || s.includes("coding")) return 1;
+  if (s.includes("verif") || s.includes("test") || s.includes("qa") || s.includes("it ") || s === "it") return 2;
+  if (s.includes("approv") || s.includes("review") || s.includes("sign") || s.includes("uat")) return 3;
+  if (s.includes("release") || s.includes("deploy") || s.includes("launch") || s.includes("go-live")) return 4;
+  if (s.includes("post") || s.includes("operate") || s.includes("monitor") || s.includes("support")) return 5;
+  return -1; // unrecognised
+}
+
+// Normalise a phase name to a short prefix for milestone map lookup
+function normPhase(s: string): string {
+  return s.toLowerCase().replace(/[\s-]/g, "").slice(0, 5);
+}
+
+function getMilestoneDate(milestones: Record<string, string>, phaseName: string): string {
+  const np = normPhase(phaseName);
+  for (const [k, v] of Object.entries(milestones)) {
+    if (normPhase(k).startsWith(np) || np.startsWith(normPhase(k))) return v;
+  }
+  return "";
+}
+
+function generateWaterfallPhases(
+  currentPhaseRaw: string,
+  riskLevel: "Low" | "Medium" | "High" | "Critical",
+  completionRate: number,
+  milestones: Record<string, string>,
+): Phase[] {
+  // "design | implementation" → take the last/deepest recognised phase
+  const parts = currentPhaseRaw.split(/[|,;\/]/).map((s) => s.trim()).filter(Boolean);
+  let currentIdx = -1;
+  for (const part of parts) {
+    const idx = rawToPhaseIndex(part);
+    if (idx > currentIdx) currentIdx = idx;
+  }
+  if (currentIdx === -1) currentIdx = 0;
+
+  const currentStatus: PhaseStatus =
+    riskLevel === "Critical" ? "Delayed" :
+    riskLevel === "High"     ? "At Risk"  :
+    riskLevel === "Medium"   ? "At Risk"  : "On Track";
+
+  return WATERFALL_PHASES.map((name, i) => {
+    const endDate = getMilestoneDate(milestones, name);
+
+    let status: PhaseStatus;
+    let progress: number;
+
+    if (i < currentIdx) {
+      status   = "Completed";
+      progress = 100;
+    } else if (i === currentIdx) {
+      status = currentStatus;
+      const completedBefore = (currentIdx / 6) * 100;
+      const thisPhaseSpan   = (1 / 6) * 100;
+      progress = Math.max(0, Math.min(99,
+        Math.round(((completionRate - completedBefore) / thisPhaseSpan) * 100),
+      ));
+    } else {
+      status   = "To Do";
+      progress = 0;
+    }
+
+    return { name, status, progress, endDate } satisfies Phase;
+  });
+}
 
 // ── Status normalisation ──────────────────────────────────────────────────────
 
-function mapTaskStatus(raw: string, overduedays: number | null): Task["status"] {
-  if (overduedays && overduedays > 0) return "Overdue";
+function mapTaskStatus(raw: string): Task["status"] {
   const s = raw.toLowerCase().trim();
-  if (s === "done" || s === "complete" || s === "completed" || s === "完了") return "Completed";
+  if (s === "done" || s === "complete" || s === "completed" || s === "完了") return "Done";
   if (s === "in progress" || s.includes("đang") || s.includes("inprogress") || s.includes("進行")) return "In Progress";
-  if (s === "blocked") return "Pending";
-  return "Pending";
+  if (s === "blocked") return "Blocked";
+  return "To Do";
 }
 
 function normaliseType(raw: string): "Waterfall" | "Scrum" {
@@ -56,15 +130,14 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
       name: t.title || t.id,
       assignee: t.owner || "-",
       deliverable: "",
-      status: mapTaskStatus(t.status, t.overduedays),
+      status: mapTaskStatus(t.status),
       dueDate: t.due || "-",
     }));
 
     const totalTasks   = tasks.length;
-    const doneTasks    = tasks.filter((t) => t.status === "Completed").length;
-    const inProgTasks  = tasks.filter((t) => t.status === "In Progress").length;
-    const pendingTasks = tasks.filter((t) => t.status === "Pending").length;
-    const overdueTasks = tasks.filter((t) => t.status === "Overdue").length;
+    const doneTasks    = tasks.filter((t) => t.status === "Done").length;
+    const pendingTasks = tasks.filter((t) => t.status === "To Do").length;
+    const overdueTasks = sprint.tasks.filter((t) => t.overduedays && t.overduedays > 0).length;
 
     // ── Risks from flags + active blockers ────────────────────────────────────
     const risks: Risk[] = [];
@@ -111,7 +184,6 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
     }
 
     // ── Sprint/time progress info ─────────────────────────────────────────────
-    const timePct = m.totalDays > 0 ? m.daysElapsed / m.totalDays : 0;
     const sprintLenDays = 14;
     const sprintsDone = m.totalDays > 0 ? Math.max(0, Math.round(m.daysElapsed / sprintLenDays)) : 0;
     const sprintsTotal = m.totalDays > 0 ? Math.max(1, Math.round(m.totalDays / sprintLenDays)) : 1;
@@ -128,6 +200,16 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
 
     const projectType = normaliseType(m.type || "Waterfall");
 
+    // Waterfall: generate phase array from currentPhase field
+    const phases = projectType === "Waterfall"
+      ? generateWaterfallPhases(
+          sprint.currentPhase,
+          m.riskLevel,
+          m.completion.completionRate,
+          sprint.milestones,
+        )
+      : undefined;
+
     return {
       id: m.projectCode,
       name: m.projectName,
@@ -143,6 +225,7 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
       atRiskDeps: 0,
       progress: Math.round(m.completion.completionRate),
       budget: { total: 0, spent: 0, monthly: [] },
+      phases,
       // Scrum sprint info (used for card body + dialog overview)
       sprintsDone,
       sprintsTotal,

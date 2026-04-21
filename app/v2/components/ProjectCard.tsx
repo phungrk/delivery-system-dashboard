@@ -42,6 +42,15 @@ const PHASE_LABEL: Record<PhaseStatus, string> = {
   "To Do":     "text-muted-foreground/60",
 };
 
+const SHORT_PHASE: Record<string, string> = {
+  "Design":         "Design",
+  "Implementation": "Impl.",
+  "Verification":   "Verif.",
+  "Approval":       "Approv.",
+  "Release":        "Release",
+  "Post-Release":   "Post",
+};
+
 // ── Waterfall card body ──────────────────────────────────────────────────────
 
 function WaterfallCardBody({ phases, endDate }: { phases: Phase[]; endDate: string }) {
@@ -57,7 +66,7 @@ function WaterfallCardBody({ phases, endDate }: { phases: Phase[]; endDate: stri
             <div className="flex-1 min-w-0">
               <div className={`h-1.5 rounded-full ${PHASE_BAR[phase.status]}`} />
               <p className={`text-[9px] font-medium text-center mt-0.5 truncate ${PHASE_LABEL[phase.status]}`}>
-                {phase.name}
+                {SHORT_PHASE[phase.name] ?? phase.name}
               </p>
             </div>
             {i < phases.length - 1 && (
@@ -69,15 +78,15 @@ function WaterfallCardBody({ phases, endDate }: { phases: Phase[]; endDate: stri
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>
           {allDone
-            ? <span className="text-emerald-400">All phases complete</span>
+            ? <span className="text-emerald-400 font-medium">All phases complete</span>
             : activePhase
-              ? <span>Active: {activePhase.name}</span>
+              ? <span>Active: <span className="text-foreground font-medium">{activePhase.name}</span></span>
               : nextTodo
-                ? <span>Next: {nextTodo.name}</span>
+                ? <span>Next: <span className="text-foreground font-medium">{nextTodo.name}</span></span>
                 : null
           }
         </span>
-        <span>Due {endDate}</span>
+        <span>{endDate ? `Due ${endDate}` : "--/--/--"}</span>
       </div>
     </div>
   );
@@ -189,18 +198,24 @@ export function ProjectCard({ project: p, onClick }: ProjectCardProps) {
 
       {/* Footer */}
       <div className="pt-2 border-t border-border flex justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span>{p.lead}</span>
+        <div className="flex items-center gap-3">
+          <span>Lead: <span className="text-foreground font-medium">{p.lead}</span></span>
           {p.overdueTasks > 0 && (
-            <span className="text-destructive">⚠ {p.overdueTasks} overdue</span>
+            <span className="flex items-center gap-1 text-destructive">
+              <Clock className="w-3 h-3" />{p.overdueTasks} overdue
+            </span>
           )}
           {p.activeRisks > 0 && (
-            <span className="text-yellow-400">🛡 {p.activeRisks} risks</span>
+            <span className="flex items-center gap-1 text-yellow-400">
+              <AlertTriangle className="w-3 h-3" />{p.activeRisks} risk{p.activeRisks > 1 ? "s" : ""}
+            </span>
           )}
         </div>
-        <span className={p.budget.spent / p.budget.total > 0.9 ? "text-destructive" : ""}>
-          ${Math.round(p.budget.spent / 1000)}k / ${Math.round(p.budget.total / 1000)}k
-        </span>
+        {p.budget.total > 0 && (
+          <span className={p.budget.spent / p.budget.total > 0.9 ? "text-destructive" : ""}>
+            ${Math.round(p.budget.spent / 1000)}k / ${Math.round(p.budget.total / 1000)}k
+          </span>
+        )}
       </div>
     </div>
   );

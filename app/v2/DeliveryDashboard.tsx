@@ -98,7 +98,7 @@ function ProjectsTab({ projects }: { projects: Project[] }) {
         </div>
       )}
 
-      <ProjectDetailDialog project={selected} onClose={() => setSelected(null)} />
+      <ProjectDetailDialog project={selected} onClose={() => setSelected(null)} projectCode={selected?.id ?? ""} />
     </div>
   );
 }

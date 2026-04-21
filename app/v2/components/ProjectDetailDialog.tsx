@@ -10,9 +10,9 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { Project, Phase, PhaseStatus, Task } from "../mockData";
+import { Project, PhaseStatus, Task } from "../mockData";
 import { Dialog, Tabs, TabsList, TabsTrigger, TabsContent, Badge, Progress } from "./ui";
-import { logTime, updateStatus, updateTaskField } from "@/lib/actions";
+import { logTime, updateStatus, updateTaskField, updateMilestone } from "@/lib/actions";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -57,11 +57,27 @@ const PHASE_STATUS_BADGE: Record<PhaseStatus, string> = {
   "To Do":     "bg-muted text-muted-foreground border-border",
 };
 
+const PHASE_PROGRESS_BAR: Record<PhaseStatus, string> = {
+  "Completed": "[&>div]:bg-emerald-500",
+  "On Track":  "[&>div]:bg-primary",
+  "At Risk":   "[&>div]:bg-yellow-500",
+  "Delayed":   "[&>div]:bg-destructive",
+  "To Do":     "[&>div]:bg-muted/50",
+};
+
+const PHASE_STATUS_ICON: Record<PhaseStatus, React.ElementType> = {
+  "Completed": CheckCircle,
+  "On Track":  TrendingUp,
+  "At Risk":   AlertTriangle,
+  "Delayed":   Clock,
+  "To Do":     Circle,
+};
+
 const TASK_STATUS_BADGE: Record<string, string> = {
-  "Completed":   "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  "Done":        "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   "In Progress": "bg-primary/15 text-primary border-primary/30",
-  "Pending":     "bg-muted text-muted-foreground border-border",
-  "Overdue":     "bg-destructive/15 text-destructive border-destructive/30",
+  "To Do":       "bg-muted text-muted-foreground border-border",
+  "Blocked":     "bg-destructive/15 text-destructive border-destructive/30",
 };
 
 const RISK_LEVEL_BADGE: Record<string, string> = {
@@ -106,8 +122,47 @@ function budgetBarClass(pct: number) {
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
 
-function OverviewTab({ p }: { p: Project }) {
+function OverviewTab({ p, projectCode }: { p: Project; projectCode: string }) {
   const completedPhases = p.phases?.filter((ph) => ph.status === "Completed").length ?? 0;
+
+  // Local editable phase dates (keyed by phase name)
+  const [phaseDates, setPhaseDates] = useState<Record<string, string>>(
+    () => Object.fromEntries((p.phases ?? []).map((ph) => [ph.name, ph.endDate])),
+  );
+
+  const PhaseDateCell = ({ phase }: { phase: { name: string; status: PhaseStatus } }) => {
+    const ref = useRef<HTMLInputElement>(null);
+    const val = phaseDates[phase.name] ?? "";
+    const hasDate = val !== "";
+
+    const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newDate = e.target.value;
+      setPhaseDates((prev) => ({ ...prev, [phase.name]: newDate }));
+      await updateMilestone(projectCode, phase.name, newDate);
+    };
+
+    return (
+      <div
+        className="relative cursor-pointer group/date"
+        onClick={() => ref.current?.showPicker?.()}
+        title="Click to set date"
+      >
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Calendar className="w-3 h-3 flex-shrink-0" />
+          <span className={hasDate ? "" : "text-muted-foreground/40"}>
+            {hasDate ? val : "--/--/--"}
+          </span>
+        </div>
+        <input
+          ref={ref}
+          type="date"
+          value={val}
+          onChange={handleChange}
+          className="absolute inset-0 opacity-0 cursor-pointer w-full"
+        />
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -133,10 +188,11 @@ function OverviewTab({ p }: { p: Project }) {
             <div className="relative z-10 flex justify-between">
               {p.phases.map((phase, i) => {
                 const cfg = PHASE_NODE[phase.status];
+                const NodeIcon = phase.status === "Completed" ? CheckCircle : undefined;
                 return (
                   <div key={phase.name} className="flex flex-col items-center gap-1">
                     <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${cfg.bg} ${cfg.border} ${cfg.text}`}>
-                      {i + 1}
+                      {NodeIcon ? <NodeIcon className="w-4 h-4" /> : i + 1}
                     </div>
                     <span className={`text-[10px] font-medium ${cfg.text}`}>{phase.name}</span>
                   </div>
@@ -153,14 +209,18 @@ function OverviewTab({ p }: { p: Project }) {
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{phase.name}</span>
-                      <Badge className={PHASE_STATUS_BADGE[phase.status]}>{phase.status}</Badge>
+                      {(() => { const Icon = PHASE_STATUS_ICON[phase.status]; return (
+                        <Badge className={PHASE_STATUS_BADGE[phase.status]}>
+                          <Icon className="w-3 h-3" />{phase.status}
+                        </Badge>
+                      ); })()}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>{phase.endDate}</span>
-                      <span className="font-semibold text-foreground">{phase.progress}%</span>
+                    <div className="flex items-center gap-3">
+                      <PhaseDateCell phase={phase} />
+                      <span className="text-xs font-semibold text-foreground">{phase.progress}%</span>
                     </div>
                   </div>
-                  <Progress value={phase.progress} className="h-1" />
+                  <Progress value={phase.progress} className={`h-1 ${PHASE_PROGRESS_BAR[phase.status]}`} />
                 </div>
               );
             })}
@@ -322,17 +382,10 @@ function BudgetTab({ p }: { p: Project }) {
 
 // Status mapping: v2 display ↔ v1 file value
 const V2_TO_FILE_STATUS: Record<Task["status"], string> = {
-  "Completed":   "Done",
+  "Done":        "Done",
   "In Progress": "In Progress",
-  "Pending":     "Not Started",
-  "Overdue":     "In Progress",
-};
-
-const FILE_TO_V2_STATUS: Record<string, Task["status"]> = {
-  "Done":        "Completed",
-  "In Progress": "In Progress",
-  "Not Started": "Pending",
-  "Blocked":     "Pending",
+  "To Do":       "Not Started",
+  "Blocked":     "Blocked",
 };
 
 // Field mapping: v2 field → markdown column name
@@ -429,6 +482,39 @@ function TasksTab({ p, projectCode }: { p: Project; projectCode: string }) {
     }
   };
 
+  // ── Date picker cell ─────────────────────────────────────────────────────────
+  const DateCell = ({ task }: { task: Task }) => {
+    const ref = useRef<HTMLInputElement>(null);
+    const today = new Date().toISOString().split("T")[0];
+    const hasDate = task.dueDate && task.dueDate !== "-";
+    const overdue = task.status !== "Done" && hasDate && task.dueDate < today;
+
+    const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value;
+      setTasks((prev) => prev.map((t) => t.id === task.id ? { ...t, dueDate: val || "-" } : t));
+      await updateTaskField(projectCode, task.id, "due", val);
+    };
+
+    return (
+      <div
+        className="relative cursor-pointer"
+        onClick={() => ref.current?.showPicker?.()}
+      >
+        <div className={`flex items-center gap-1 text-xs select-none ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+          <Calendar className="w-3 h-3 flex-shrink-0" />
+          <span>{hasDate ? task.dueDate : "—"}</span>
+        </div>
+        <input
+          ref={ref}
+          type="date"
+          value={hasDate ? task.dueDate : ""}
+          onChange={handleChange}
+          className="absolute inset-0 opacity-0 cursor-pointer w-full"
+        />
+      </div>
+    );
+  };
+
   // ── Editable cell helper ─────────────────────────────────────────────────────
   const EditCell = ({ task, field, display }: { task: Task; field: "name" | "assignee" | "dueDate"; display: string }) => {
     const isEditing = edit?.taskId === task.id && edit.field === field;
@@ -470,7 +556,7 @@ function TasksTab({ p, projectCode }: { p: Project; projectCode: string }) {
 
       {/* Summary pills */}
       <div className="flex flex-wrap gap-2">
-        {(["Completed", "In Progress", "Pending", "Overdue"] as const).map((s) =>
+        {(["Done", "In Progress", "To Do", "Blocked"] as const).map((s) =>
           counts[s] ? <Badge key={s} className={TASK_STATUS_BADGE[s]}>{counts[s]} {s}</Badge> : null
         )}
       </div>
@@ -478,10 +564,10 @@ function TasksTab({ p, projectCode }: { p: Project; projectCode: string }) {
       {/* Task list */}
       <div className="space-y-2">
         {tasks.map((task) => {
-          const isComplete = task.status === "Completed";
-          const isOverdue  = task.status === "Overdue";
-          const TaskIcon   = isComplete ? CheckCircle2 : isOverdue ? AlertTriangle : Circle;
-          const iconColor  = isComplete ? "text-emerald-400" : isOverdue ? "text-destructive" : "text-muted-foreground";
+          const isComplete = task.status === "Done";
+          const isBlocked  = task.status === "Blocked";
+          const TaskIcon   = isComplete ? CheckCircle2 : isBlocked ? AlertTriangle : Circle;
+          const iconColor  = isComplete ? "text-emerald-400" : isBlocked ? "text-destructive" : "text-muted-foreground";
           const isLogging  = log?.taskId === task.id;
 
           return (
@@ -503,19 +589,18 @@ function TasksTab({ p, projectCode }: { p: Project; projectCode: string }) {
 
                 {/* Status select */}
                 <select
-                  value={task.status === "Overdue" ? "In Progress" : task.status}
+                  value={task.status}
                   onChange={(e) => handleStatusChange(task.id, e.target.value as Task["status"])}
                   className={`text-xs px-2 py-1 rounded border bg-transparent cursor-pointer focus:outline-none ${TASK_STATUS_BADGE[task.status]}`}
                 >
-                  <option value="Completed">Completed</option>
+                  <option value="To Do">To Do</option>
                   <option value="In Progress">In Progress</option>
-                  <option value="Pending">Pending</option>
+                  <option value="Blocked">Blocked</option>
+                  <option value="Done">Done</option>
                 </select>
 
                 {/* Due date */}
-                <div className="text-xs text-muted-foreground min-w-[72px] text-right">
-                  <EditCell task={task} field="dueDate" display={task.dueDate} />
-                </div>
+                <DateCell task={task} />
 
                 {/* Log time button */}
                 <button
@@ -696,12 +781,13 @@ function TeamTab({ p }: { p: Project }) {
 interface Props {
   project: Project | null;
   onClose: () => void;
+  projectCode: string;
 }
 
-export function ProjectDetailDialog({ project: p, onClose }: Props) {
+export function ProjectDetailDialog({ project: p, onClose, projectCode }: Props) {
   if (!p) return null;
   const StatusIcon = STATUS_ICON[p.status];
-  const overdueCount = p.tasks.filter((t) => t.status === "Overdue").length;
+  const overdueCount = p.tasks.filter((t) => t.status === "Blocked").length;
   const activeRisks  = p.risks.filter((r) => r.status === "Active").length;
 
   return (
@@ -782,9 +868,9 @@ export function ProjectDetailDialog({ project: p, onClose }: Props) {
           </TabsList>
 
           <div className="flex-1 overflow-y-auto p-6">
-            <TabsContent value="overview"><OverviewTab p={p} /></TabsContent>
+            <TabsContent value="overview"><OverviewTab p={p} projectCode={projectCode} /></TabsContent>
             <TabsContent value="budget"><BudgetTab p={p} /></TabsContent>
-            <TabsContent value="tasks"><TasksTab p={p} /></TabsContent>
+            <TabsContent value="tasks"><TasksTab p={p} projectCode={projectCode} /></TabsContent>
             <TabsContent value="risks"><RisksTab p={p} /></TabsContent>
             <TabsContent value="dependencies"><DependenciesTab p={p} /></TabsContent>
             <TabsContent value="team"><TeamTab p={p} /></TabsContent>
