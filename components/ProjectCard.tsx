@@ -19,8 +19,8 @@ export function ProjectCard({ m }: { m: ProjectMetrics }) {
   const statusCfg = STATUS_CONFIG[status];
 
   return (
-    <Link href={`/projects/${m.projectCode}`}>
-    <Card className={`border-2 ${cardBorder[m.riskLevel]} hover:shadow-md transition-shadow cursor-pointer`}>
+    <Link href={`/projects/${m.projectCode}`} className="h-full">
+    <Card className={`h-full flex flex-col border-2 ${cardBorder[m.riskLevel]} hover:shadow-md transition-shadow cursor-pointer`}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -36,7 +36,7 @@ export function ProjectCard({ m }: { m: ProjectMetrics }) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="flex flex-col flex-1 space-y-3">
         <DualProgressBar completionPct={m.completion.completionRate} timePct={timePct} />
 
         <div className="grid grid-cols-3 gap-2 text-center">
@@ -45,27 +45,23 @@ export function ProjectCard({ m }: { m: ProjectMetrics }) {
           <Stat label="Days left" value={String(m.daysRemaining)} danger={m.daysRemaining < 7} />
         </div>
 
-        {m.flags.length > 0 && (
-          <div className="space-y-1">
-            {m.flags.map((f, i) => (
-              <p key={i} className="text-xs text-orange-700 bg-orange-50 rounded px-2 py-1 leading-snug">
-                ⚠ {f}
-              </p>
-            ))}
-          </div>
-        )}
-
-        {spof && (
-          <p className="text-xs text-red-600 bg-red-50 rounded px-2 py-1">
-            ⚠ SPOF: {spof.owner} owns {spof.total}/{m.workload.reduce((s, x) => s + x.total, 0)} tasks
-          </p>
-        )}
-
-        {m.warnings.length > 0 && (
-          <p className="text-xs text-gray-400 italic">
-            Parse warnings: {m.warnings.join("; ")}
-          </p>
-        )}
+        <div className="flex-1 space-y-1">
+          {m.flags.map((f, i) => (
+            <p key={i} className="text-xs text-orange-700 bg-orange-50 rounded px-2 py-1 leading-snug">
+              ⚠ {f}
+            </p>
+          ))}
+          {spof && (
+            <p className="text-xs text-red-600 bg-red-50 rounded px-2 py-1">
+              ⚠ SPOF: {spof.owner} owns {spof.total}/{m.workload.reduce((s, x) => s + x.total, 0)} tasks
+            </p>
+          )}
+          {m.warnings.length > 0 && (
+            <p className="text-xs text-gray-400 italic">
+              Parse warnings: {m.warnings.join("; ")}
+            </p>
+          )}
+        </div>
       </CardContent>
     </Card>
     </Link>

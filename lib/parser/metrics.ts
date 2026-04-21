@@ -177,7 +177,6 @@ function computeMetricsFromSprint(sprint: SprintFile): ProjectMetrics {
   const tasks = sprint.tasks;
   const total = tasks.length;
   const done  = tasks.filter(t => t.status === "Done").length;
-  const inProgress = tasks.filter(t => t.status === "In Progress").length;
   const blocked    = tasks.filter(t => t.status === "Blocked").length;
   const overdue    = tasks.filter(t => t.overduedays && t.overduedays > 0).length;
 
@@ -246,7 +245,10 @@ function computeMetricsFromSprint(sprint: SprintFile): ProjectMetrics {
 
 // Merges processed metrics (rich) + computed fallback for input-only projects
 export function loadAllMetricsMerged(): ProjectMetrics[] {
-  const processed = loadAllMetrics();
+  const inputCodes = new Set(listAllProjects(INPUT_DIR).map(p => p.code));
+
+  // Only keep processed entries whose project still exists in input/
+  const processed = loadAllMetrics().filter(m => inputCodes.has(m.projectCode));
   const processedCodes = new Set(processed.map(m => m.projectCode));
 
   const results = [...processed];
@@ -254,7 +256,7 @@ export function loadAllMetricsMerged(): ProjectMetrics[] {
   for (const { code } of listAllProjects(INPUT_DIR)) {
     if (processedCodes.has(code)) continue;
     const sprint = loadSprintFile(code);
-    if (sprint.tasks.length === 0 && sprint.warnings.length > 0) continue; // skip empty/broken
+    if (sprint.tasks.length === 0 && sprint.warnings.length > 0) continue;
     results.push(computeMetricsFromSprint(sprint));
   }
 
