@@ -35,10 +35,11 @@ function getMilestoneDate(milestones: Record<string, string>, phaseName: string)
 function generateWaterfallPhases(
   currentPhaseRaw: string,
   riskLevel: "Low" | "Medium" | "High" | "Critical",
+  allTasksDone: boolean,
   completionRate: number,
   milestones: Record<string, string>,
+  today: string,
 ): Phase[] {
-  // "design | implementation" → take the last/deepest recognised phase
   const parts = currentPhaseRaw.split(/[|,;\/]/).map((s) => s.trim()).filter(Boolean);
   let currentIdx = -1;
   for (const part of parts) {
@@ -47,11 +48,6 @@ function generateWaterfallPhases(
   }
   if (currentIdx === -1) currentIdx = 0;
 
-  const currentStatus: PhaseStatus =
-    riskLevel === "Critical" ? "Delayed" :
-    riskLevel === "High"     ? "At Risk"  :
-    riskLevel === "Medium"   ? "At Risk"  : "On Track";
-
   return WATERFALL_PHASES.map((name, i) => {
     const endDate = getMilestoneDate(milestones, name);
 
@@ -59,15 +55,25 @@ function generateWaterfallPhases(
     let progress: number;
 
     if (i < currentIdx) {
+      // Phases already passed
       status   = "Completed";
       progress = 100;
     } else if (i === currentIdx) {
-      status = currentStatus;
-      const completedBefore = (currentIdx / 6) * 100;
-      const thisPhaseSpan   = (1 / 6) * 100;
-      progress = Math.max(0, Math.min(99,
-        Math.round(((completionRate - completedBefore) / thisPhaseSpan) * 100),
-      ));
+      // Active phase
+      const isOverdue = endDate !== "" && today > endDate;
+      if (allTasksDone) {
+        status   = "Completed";
+        progress = 100;
+      } else if (isOverdue) {
+        status   = "Delayed";
+        progress = Math.min(99, Math.round(completionRate));
+      } else if (riskLevel !== "Low") {
+        status   = "At Risk";
+        progress = Math.min(99, Math.round(completionRate));
+      } else {
+        status   = "On Track";
+        progress = Math.min(99, Math.round(completionRate));
+      }
     } else {
       status   = "To Do";
       progress = 0;
@@ -107,13 +113,6 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
 
   const projects: Project[] = metrics.map((m) => {
     const sprint = loadSprintFile(m.projectCode);
-
-    // ── Status ──────────────────────────────────────────────────────────────
-    let status: Project["status"] = "On Track";
-    if (m.completion.completionRate >= 98) status = "Completed";
-    else if (m.riskLevel === "Critical")   status = "Delayed";
-    else if (m.riskLevel === "High")       status = "At Risk";
-    else if (m.riskLevel === "Medium")     status = "At Risk";
 
     // ── Priority ─────────────────────────────────────────────────────────────
     const priority: Project["priority"] =
@@ -198,27 +197,46 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
       kpis.push({ label: "Block Rate", value: Math.round(m.completion.blockRate), unit: "%", target: 0, trend: "up", goodDir: "down" });
     }
 
-    const projectType = normaliseType(m.type || "Waterfall");
+    const projectType = normaliseType(sprint.type || m.type || "Waterfall");
 
     // Waterfall: generate phase array from currentPhase field
+    const today = new Date().toISOString().split("T")[0];
+    const allTasksDone = totalTasks > 0 && doneTasks === totalTasks;
+
     const phases = projectType === "Waterfall"
       ? generateWaterfallPhases(
           sprint.currentPhase,
           m.riskLevel,
+          allTasksDone,
           m.completion.completionRate,
           sprint.milestones,
+          today,
         )
       : undefined;
 
+    // ── Status ──────────────────────────────────────────────────────────────
+    let status: Project["status"] = "On Track";
+    if (phases) {
+      // Waterfall: Completed only when ALL phases are Completed
+      if (phases.every((ph) => ph.status === "Completed")) status = "Completed";
+      else if (m.riskLevel === "Critical") status = "Delayed";
+      else if (m.riskLevel === "High" || m.riskLevel === "Medium") status = "At Risk";
+    } else {
+      // Scrum / no phases: fall back to completion rate
+      if (m.completion.completionRate >= 98) status = "Completed";
+      else if (m.riskLevel === "Critical") status = "Delayed";
+      else if (m.riskLevel === "High" || m.riskLevel === "Medium") status = "At Risk";
+    }
+
     return {
       id: m.projectCode,
-      name: m.projectName,
+      name: sprint.projectName || m.projectName,
       client: m.projectCode,
       type: projectType,
       status,
       priority,
-      startDate: m.period.start || "-",
-      endDate: m.period.end || "-",
+      startDate: m.period.start || sprint.periodStart || "-",
+      endDate: m.period.end || sprint.periodEnd || "-",
       lead,
       overdueTasks,
       activeRisks: risks.filter((r) => r.status === "Active").length,

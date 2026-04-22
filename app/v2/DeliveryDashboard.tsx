@@ -10,7 +10,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent, Input, Select } from "./compo
 import { StatCard } from "./components/StatCard";
 import { ProjectCard } from "./components/ProjectCard";
 import { ResourceCard } from "./components/ResourceCard";
-import { ProjectDetailDialog } from "./components/ProjectDetailDialog";
 import { ResourceDetailDialog } from "./components/ResourceDetailDialog";
 
 // ── Projects Tab ──────────────────────────────────────────────────────────────
@@ -19,7 +18,6 @@ function ProjectsTab({ projects }: { projects: Project[] }) {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"All" | "Waterfall" | "Scrum">("All");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selected, setSelected] = useState<Project | null>(null);
 
   const filtered = useMemo(() => projects.filter((p) => {
     const q = search.toLowerCase();
@@ -93,12 +91,10 @@ function ProjectsTab({ projects }: { projects: Project[] }) {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filtered.map((p) => (
-            <ProjectCard key={p.id} project={p} onClick={() => setSelected(p)} />
+            <ProjectCard key={p.id} project={p} />
           ))}
         </div>
       )}
-
-      <ProjectDetailDialog project={selected} onClose={() => setSelected(null)} projectCode={selected?.id ?? ""} />
     </div>
   );
 }

@@ -172,9 +172,15 @@ export function loadSprintFile(projectCode: string): SprintFile {
   const content = fs.readFileSync(path.join(dir, files[0]), "utf-8");
   const today = new Date().toISOString().split("T")[0];
 
+  // Type: project-context.* takes priority over tracking file
+  const contextFile = fs.readdirSync(dir).find((f) => f.match(/^project-context\.(md|txt)$/));
+  const contextContent = contextFile ? fs.readFileSync(path.join(dir, contextFile), "utf-8") : "";
+  const typeFromContext = contextContent.match(/^Type:\s*(.+)/m)?.[1]?.trim() ?? "";
+  const typeFromTracking = content.match(/^Type:\s*(.+)/m)?.[1]?.trim() ?? "";
+  const type = typeFromContext || typeFromTracking;
+
   // Header fields
   const projectName = content.match(/^#\s+(?:Sprint \d+[^—\n]*—\s*|Sprint \d+:\s*|Board:\s*|Project:\s*)?(.+)/m)?.[1]?.trim() ?? projectCode;
-  const type = content.match(/^Type:\s*(.+)/m)?.[1]?.trim() ?? "";
   const currentPhase = content.match(/^Current Phase:\s*(.+)/m)?.[1]?.trim() ?? "";
   const periodMatch = content.match(/Period:\s*(\d{4}-\d{2}-\d{2})\s*→\s*(\d{4}-\d{2}-\d{2})/);
   const sprintMatch = content.match(/Sprint:\s*(\d{4}-\d{2}-\d{2})\s*→\s*(\d{4}-\d{2}-\d{2})/);

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Layers, GitBranch, TrendingUp, AlertTriangle, Clock, CheckCircle, ChevronRight } from "lucide-react";
 import { Project, Phase, PhaseStatus } from "../mockData";
 import { Badge, Progress } from "./ui";
@@ -160,15 +161,14 @@ function TaskProgressBody({ project }: { project: Project }) {
 
 interface ProjectCardProps {
   project: Project;
-  onClick: () => void;
 }
 
-export function ProjectCard({ project: p, onClick }: ProjectCardProps) {
+export function ProjectCard({ project: p }: ProjectCardProps) {
   const StatusIcon = STATUS_ICON[p.status];
 
   return (
-    <div
-      onClick={onClick}
+    <Link
+      href={`/v2/${p.id}`}
       className="bg-card border border-border rounded-xl p-4 cursor-pointer flex flex-col gap-3 hover:border-primary/50 hover:shadow-lg hover:shadow-black/20 transition-all"
     >
       {/* Header */}
@@ -217,6 +217,6 @@ export function ProjectCard({ project: p, onClick }: ProjectCardProps) {
           </span>
         )}
       </div>
-    </div>
+    </Link>
   );
 }

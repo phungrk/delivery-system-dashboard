@@ -31,7 +31,6 @@ function parseMetricsFile(filePath: string, projectCode: string): ProjectMetrics
 
   const metricsDate = path.basename(filePath).replace("metrics-", "").replace(".md", "");
 
-  // Project name + period from Source line
   let projectName = projectCode;
   let start = "";
   let end = "";
@@ -40,6 +39,7 @@ function parseMetricsFile(filePath: string, projectCode: string): ProjectMetrics
   let daysRemaining = 0;
   let type: ProjectMetrics["type"] = "Waterfall";
 
+  // ── Old format: single Source line ─────────────────────────────────────────
   const sourceMatch = content.match(/Sprint.*?(?:\||:)\s*(.*?)\s*\|\s*Period:\s*(\d{4}-\d{2}-\d{2})\s*→\s*(\d{4}-\d{2}-\d{2})\s*\|\s*Days elapsed:\s*(\d+)\s*\/\s*(\d+)\s*\|\s*Days remaining:\s*(\d+)/);
   if (sourceMatch) {
     projectName = sourceMatch[1].trim();
@@ -49,19 +49,28 @@ function parseMetricsFile(filePath: string, projectCode: string): ProjectMetrics
     totalDays = parseInt(sourceMatch[5]);
     daysRemaining = parseInt(sourceMatch[6]);
   } else {
-    // HAYK format
-    const projectMatch = content.match(/Project:\s*(.+)/);
-    if (projectMatch) projectName = projectMatch[1].trim();
+    // ── New format: ## Timeline Metrics section ───────────────────────────────
+    const periodMatch = content.match(/^- Period:\s*(\d{4}-\d{2}-\d{2})\s*→\s*(\d{4}-\d{2}-\d{2})/m);
+    if (periodMatch) { start = periodMatch[1]; end = periodMatch[2]; }
+    const totalDaysMatch = content.match(/^- Total days:\s*(\d+)/m);
+    if (totalDaysMatch) totalDays = parseInt(totalDaysMatch[1]);
+    const daysElapsedMatch = content.match(/^- Days elapsed:\s*(\d+)/m);
+    if (daysElapsedMatch) daysElapsed = parseInt(daysElapsedMatch[1]);
+    const daysRemainingMatch = content.match(/^- Days remaining:\s*(\d+)/m);
+    if (daysRemainingMatch) daysRemaining = parseInt(daysRemainingMatch[1]);
 
-    const sprintMatch = content.match(/Sprint:\s*(\d{4}-\d{2}-\d{2})\s*→\s*(\d{4}-\d{2}-\d{2})\s*\(day\s*(\d+)\/(\d+)\s*elapsed/);
-    if (sprintMatch) {
-      start = sprintMatch[1];
-      end = sprintMatch[2];
-      daysElapsed = parseInt(sprintMatch[3]);
-      totalDays = parseInt(sprintMatch[4]);
-      daysRemaining = totalDays - daysElapsed;
-    } else {
-      warnings.push("Could not parse sprint period");
+    // Legacy HAYK-style fallback
+    if (!start) {
+      const projectMatch = content.match(/Project:\s*(.+)/);
+      if (projectMatch) projectName = projectMatch[1].trim();
+      const sprintMatch = content.match(/Sprint:\s*(\d{4}-\d{2}-\d{2})\s*→\s*(\d{4}-\d{2}-\d{2})\s*\(day\s*(\d+)\/(\d+)\s*elapsed/);
+      if (sprintMatch) {
+        start = sprintMatch[1]; end = sprintMatch[2];
+        daysElapsed = parseInt(sprintMatch[3]); totalDays = parseInt(sprintMatch[4]);
+        daysRemaining = totalDays - daysElapsed;
+      } else {
+        warnings.push("Could not parse sprint period");
+      }
     }
   }
 
@@ -70,47 +79,77 @@ function parseMetricsFile(filePath: string, projectCode: string): ProjectMetrics
   else if (/Scrum/i.test(content)) type = "Scrum";
   else if (/Kanban/i.test(content)) type = "Kanban";
 
-  // Completion metrics
-  const completionBlock = content.match(/## Completion\n([\s\S]*?)(?=\n##|$)/)?.[1] ?? "";
-  const completionRows = parseMarkdownTable(completionBlock);
-  const getMetric = (name: string) => {
-    const row = completionRows.find((r) => r["metric"]?.toLowerCase().includes(name));
-    return parseFloat2(row?.["value"] ?? "0");
-  };
+  // ── Completion metrics ──────────────────────────────────────────────────────
+  let completionRate = 0, onTrackRate = 0, overdueRate = 0, blockRate = 0;
 
-  const completion = {
-    completionRate: getMetric("completion"),
-    onTrackRate: getMetric("on-track"),
-    overdueRate: getMetric("overdue"),
-    blockRate: getMetric("block"),
-  };
+  const oldCompletionBlock = content.match(/## Completion\n([\s\S]*?)(?=\n##|$)/)?.[1] ?? "";
+  if (oldCompletionBlock.includes("|")) {
+    // Old format: markdown table
+    const completionRows = parseMarkdownTable(oldCompletionBlock);
+    const getMetric = (name: string) => {
+      const row = completionRows.find((r) => r["metric"]?.toLowerCase().includes(name));
+      return parseFloat2(row?.["value"] ?? "0");
+    };
+    completionRate = getMetric("completion");
+    onTrackRate    = getMetric("on-track");
+    overdueRate    = getMetric("overdue");
+    blockRate      = getMetric("block");
+  } else {
+    // New format: bullet list under ## Task Metrics
+    const crMatch = content.match(/^- Completion Rate:\s*([\d.]+)%/m);
+    if (crMatch) completionRate = parseFloat(crMatch[1]);
+    const orMatch = content.match(/^- Overdue Rate:\s*([\d.]+)%/m);
+    if (orMatch) overdueRate = parseFloat(orMatch[1]);
+    const brMatch = content.match(/^- Block Rate:\s*([\d.]+)%/m);
+    if (brMatch) blockRate = parseFloat(brMatch[1]);
+    onTrackRate = 100 - overdueRate;
+  }
 
-  // Workload
-  const workloadBlock = content.match(/## Workload by owner\n([\s\S]*?)(?=\n##|$)/)?.[1] ?? "";
+  const completion = { completionRate, onTrackRate, overdueRate, blockRate };
+
+  // ── Workload ────────────────────────────────────────────────────────────────
+  // Old: "## Workload by owner"; New: "## Workload"
+  const workloadBlock = content.match(/## Workload(?:\s+by\s+owner)?\n([\s\S]*?)(?=\n##|$)/)?.[1] ?? "";
   const workloadRows = parseMarkdownTable(workloadBlock);
   const workload = workloadRows.map((r) => ({
-    owner: r["owner"] ?? "",
-    total: parseInt2(r["total"]),
-    inProgress: parseInt2(r["in progress"]),
-    done: parseInt2(r["done"]),
-    blocked: parseInt2(r["blocked"]),
-    flag: r["flag"] === "—" ? undefined : r["flag"],
+    owner:      r["owner"] ?? "",
+    total:      parseInt2(r["total"] ?? r["total tasks"] ?? "0"),
+    inProgress: parseInt2(r["in progress"] ?? "0"),
+    done:       parseInt2(r["done"] ?? "0"),
+    blocked:    parseInt2(r["blocked"] ?? "0"),
+    flag:       r["flag"] && r["flag"] !== "—" ? r["flag"] : undefined,
   })).filter((w) => w.owner);
 
-  // Blockers
+  // ── Blockers ────────────────────────────────────────────────────────────────
   const blockersMatch = content.match(/Total active:\s*(\d+)/);
-  const activeBlockers = blockersMatch ? parseInt(blockersMatch[1]) : 0;
+  // New format fallback: "- Active Blockers: N"
+  const newBlockersMatch = content.match(/^- Active Blockers:\s*(\d+)/m);
+  const activeBlockers = blockersMatch
+    ? parseInt(blockersMatch[1])
+    : newBlockersMatch ? parseInt(newBlockersMatch[1]) : 0;
 
-  // Risk score
-  const riskMatch = content.match(/Risk score:\s*(\d+)\/10\s*—\s*(\w+)/);
-  const riskScore = riskMatch ? parseInt(riskMatch[1]) : 0;
-  const riskLevelRaw = riskMatch?.[2] ?? "Low";
-  const riskLevel = (["Low", "Medium", "High", "Critical"].includes(riskLevelRaw)
-    ? riskLevelRaw
-    : "Low") as ProjectMetrics["riskLevel"];
+  // ── Risk score / level ──────────────────────────────────────────────────────
+  let riskScore = 0;
+  let riskLevel: ProjectMetrics["riskLevel"] = "Low";
 
-  // Flags (FLAG: lines)
-  const flags = Array.from(content.matchAll(/^> FLAG: (.+)$/gm)).map((m) => m[1]);
+  const oldRiskMatch = content.match(/Risk score:\s*(\d+)\/10\s*—\s*(\w+)/);
+  if (oldRiskMatch) {
+    riskScore = parseInt(oldRiskMatch[1]);
+    const raw = oldRiskMatch[2] ?? "Low";
+    riskLevel = (["Low", "Medium", "High", "Critical"].includes(raw) ? raw : "Low") as ProjectMetrics["riskLevel"];
+  } else {
+    // New format: "- Risk Level: Medium"
+    const newRiskMatch = content.match(/^- Risk Level:\s*(\w[\w-]*)/m);
+    if (newRiskMatch) {
+      const raw = newRiskMatch[1];
+      riskLevel = (["Low", "Medium", "High", "Critical"].includes(raw) ? raw : "Low") as ProjectMetrics["riskLevel"];
+      riskScore = riskLevel === "Critical" ? 9 : riskLevel === "High" ? 7 : riskLevel === "Medium" ? 4 : 1;
+    }
+  }
+
+  // ── Flags ───────────────────────────────────────────────────────────────────
+  // Old: "> FLAG: ..." ; New: "- FLAG: ..."
+  const flags = Array.from(content.matchAll(/^[>-]\s*FLAG:\s*(.+)$/gm)).map((m) => m[1]);
 
   return {
     projectCode,

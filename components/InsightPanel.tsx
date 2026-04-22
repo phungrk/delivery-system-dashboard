@@ -13,7 +13,8 @@ const priorityColors: Record<string, string> = {
 };
 
 export function InsightPanel({ data }: { data: InsightsData }) {
-  if (!data.summary && data.signals.length === 0) {
+  const allSignals = [...data.keyRisks, ...data.hiddenRisks];
+  if (!data.summary && allSignals.length === 0) {
     return <p className="text-sm text-gray-400 italic">No insights available. Run the pipeline to generate insights.</p>;
   }
 
@@ -25,15 +26,16 @@ export function InsightPanel({ data }: { data: InsightsData }) {
       )}
 
       {/* Risk signals */}
-      {data.signals.length > 0 && (
+      {allSignals.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-xs font-semibold uppercase text-gray-500 tracking-wide">Risk Signals</h3>
-          {data.signals.map((s, i) => {
+          {allSignals.map((s, i) => {
             const cfg = signalConfig[s.level];
             return (
               <div key={i} className={`rounded-lg border px-3 py-2.5 text-sm ${cfg.className}`}>
                 <span className="font-semibold mr-2">{cfg.icon} {cfg.label}</span>
-                {s.text}
+                {s.description}
+                {s.action && <p className="mt-1 text-xs opacity-75">→ {s.action}</p>}
               </div>
             );
           })}

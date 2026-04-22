@@ -8,7 +8,8 @@ export type RiskLevel = "critical" | "warning" | "info";
 
 export type RiskSignal = {
   level: RiskLevel;
-  text: string;
+  description: string;
+  action: string;
 };
 
 export type ActionItem = {
@@ -25,7 +26,8 @@ export type StandupQuestion = {
 
 export type InsightsData = {
   summary: string;
-  signals: RiskSignal[];
+  keyRisks: RiskSignal[];
+  hiddenRisks: RiskSignal[];
   actions: ActionItem[];
   standupQuestions: StandupQuestion[];
   positives: string[];
@@ -33,10 +35,18 @@ export type InsightsData = {
 };
 
 function parseSignalLine(line: string): RiskSignal | null {
-  if (line.startsWith("🔴")) return { level: "critical", text: line.replace(/^🔴\s*(CRITICAL\s*—\s*)?/, "").trim() };
-  if (line.startsWith("🟡")) return { level: "warning", text: line.replace(/^🟡\s*(WARNING\s*—\s*)?/, "").trim() };
-  if (line.startsWith("🔵")) return { level: "info", text: line.replace(/^🔵\s*(INFO\s*—\s*)?/, "").trim() };
-  return null;
+  let level: RiskLevel | null = null;
+  let rawText = "";
+  if (line.startsWith("🔴"))      { level = "critical"; rawText = line.replace(/^🔴\s*(CRITICAL\s*—\s*)?/, "").trim(); }
+  else if (line.startsWith("🟡")) { level = "warning";  rawText = line.replace(/^🟡\s*(WARNING\s*—\s*)?/, "").trim(); }
+  else if (line.startsWith("🔵")) { level = "info";     rawText = line.replace(/^🔵\s*(INFO\s*—\s*)?/, "").trim(); }
+  else return null;
+
+  const sep = "— Hành động:";
+  const idx = rawText.indexOf(sep);
+  const description = idx >= 0 ? rawText.slice(0, idx).trim() : rawText;
+  const action = idx >= 0 ? rawText.slice(idx + sep.length).trim() : "";
+  return { level, description, action };
 }
 
 function parseActionLine(line: string): ActionItem | null {
@@ -57,7 +67,7 @@ function parseActionLine(line: string): ActionItem | null {
 
 export function loadInsights(projectCode: string): InsightsData {
   const dir = findProjectDir(PROCESSED_DIR, projectCode);
-  const empty: InsightsData = { summary: "", signals: [], actions: [], standupQuestions: [], positives: [], insightsDate: "" };
+  const empty: InsightsData = { summary: "", keyRisks: [], hiddenRisks: [], actions: [], standupQuestions: [], positives: [], insightsDate: "" };
 
   if (!dir) return empty;
 
@@ -73,11 +83,15 @@ export function loadInsights(projectCode: string): InsightsData {
   // Summary
   const summaryBlock = content.match(/## Tình hình tổng thể\s*\n([\s\S]*?)(?=\n##)/)?.[1]?.trim() ?? "";
 
-  // Risk signals
-  const signalBlock = content.match(/## Tín hiệu rủi ro\s*\n([\s\S]*?)(?=\n##)/)?.[1] ?? "";
-  const signals = signalBlock.split("\n")
-    .map(parseSignalLine)
-    .filter((s): s is RiskSignal => s !== null);
+  // Key Risks: new "Key Risks" heading, fallback to old "Tín hiệu rủi ro"
+  const keyRisksBlock = content.match(/## Key Risks\s*\n([\s\S]*?)(?=\n##|$)/)?.[1]
+    ?? content.match(/## Tín hiệu rủi ro\s*\n([\s\S]*?)(?=\n##|$)/)?.[1]
+    ?? "";
+  const keyRisks = keyRisksBlock.split("\n").map(parseSignalLine).filter((s): s is RiskSignal => s !== null);
+
+  // Hidden Risks (new format)
+  const hiddenRisksBlock = content.match(/## Hidden Risks\s*\n([\s\S]*?)(?=\n##|$)/)?.[1] ?? "";
+  const hiddenRisks = hiddenRisksBlock.split("\n").map(parseSignalLine).filter((s): s is RiskSignal => s !== null);
 
   // Action items
   const actionBlock = content.match(/## Hành động đề xuất\s*\n([\s\S]*?)(?=\n##|$)/)?.[1] ?? "";
@@ -104,5 +118,5 @@ export function loadInsights(projectCode: string): InsightsData {
     .filter((l) => l.startsWith("-"))
     .map((l) => l.replace(/^-\s*/, "").trim());
 
-  return { summary: summaryBlock, signals, actions, standupQuestions, positives, insightsDate };
+  return { summary: summaryBlock, keyRisks, hiddenRisks, actions, standupQuestions, positives, insightsDate };
 }
