@@ -1,6 +1,9 @@
 import { loadAllMetricsMerged } from "@/lib/parser/metrics";
 import { loadSprintFile } from "@/lib/parser/sprint";
-import type { Project, Resource, Task, Risk, KPI, Phase, PhaseStatus } from "./mockData";
+import { loadInsights } from "@/lib/parser/insights";
+import { deriveProjectStatus } from "@/lib/projectStatus";
+import type { Project, Resource, Task, Risk, KPI, Phase, PhaseStatus, Sprint, SprintPhase } from "./mockData";
+import { SPRINT_PHASES } from "./scrum";
 
 // ── Waterfall phase generation ────────────────────────────────────────────────
 
@@ -99,6 +102,108 @@ function normaliseType(raw: string): "Waterfall" | "Scrum" {
   return "Waterfall";
 }
 
+function mapDerivedStatus(status: ReturnType<typeof deriveProjectStatus>): Exclude<Project["status"], "Completed"> {
+  if (status === "delayed") return "Delayed";
+  if (status === "at-risk" || status === "unknown") return "At Risk";
+  return "On Track";
+}
+
+function isoDate(ms: number): string {
+  return new Date(ms).toISOString().split("T")[0];
+}
+
+function splitSprintDates(startDate: string, endDate: string, totalSprints: number, index: number) {
+  const startMs = new Date(startDate).getTime();
+  const endMs = new Date(endDate).getTime();
+  if (!startDate || !endDate || Number.isNaN(startMs) || Number.isNaN(endMs) || totalSprints <= 0 || endMs <= startMs) {
+    return { startDate: startDate || "-", endDate: endDate || "-" };
+  }
+  const sprintMs = Math.max(86400000, (endMs - startMs) / totalSprints);
+  const sprintStart = startMs + sprintMs * index;
+  const sprintEnd = index === totalSprints - 1 ? endMs : Math.min(endMs, sprintStart + sprintMs - 86400000);
+  return { startDate: isoDate(sprintStart), endDate: isoDate(sprintEnd) };
+}
+
+function buildCompletedSprintPhases(): SprintPhase[] {
+  return SPRINT_PHASES.map((name) => ({ name, status: "Completed", progress: 100 }));
+}
+
+function buildActiveSprintPhases(completionRate: number, riskLevel: "Low" | "Medium" | "High" | "Critical", status: Project["status"]): SprintPhase[] {
+  const activeStatus: PhaseStatus =
+    status === "Delayed" ? "Delayed"
+    : riskLevel === "High" || riskLevel === "Critical" ? "At Risk"
+    : "On Track";
+
+  const devProgress = Math.max(10, Math.min(95, Math.round(completionRate)));
+
+  return SPRINT_PHASES.map((name, index) => {
+    if (index < 2) return { name, status: "Completed", progress: 100 };
+    if (index === 2) return { name, status: activeStatus, progress: devProgress };
+    return { name, status: "To Do", progress: 0 };
+  });
+}
+
+function buildScrumSeries(params: {
+  projectStatus: Project["status"];
+  startDate: string;
+  endDate: string;
+  totalSprints: number;
+  completedSprints: number;
+  sprintNumber: number | null;
+  completionRate: number;
+  riskLevel: "Low" | "Medium" | "High" | "Critical";
+  doneTasks: number;
+  totalTasks: number;
+  goal: string;
+}) {
+  const targetCurrentNumber = params.sprintNumber ?? Math.max(1, params.completedSprints + 1);
+  const totalSprints = Math.max(targetCurrentNumber, Math.max(1, params.totalSprints));
+  const completedSprints = Math.min(
+    params.projectStatus === "Completed" ? Math.max(params.completedSprints, targetCurrentNumber - 1) : params.completedSprints,
+    Math.max(0, targetCurrentNumber - 1),
+  );
+
+  const sprintHistory: Sprint[] = Array.from({ length: completedSprints }, (_, index) => {
+    const dates = splitSprintDates(params.startDate, params.endDate, totalSprints, index);
+    const committed = Math.max(8, Math.round(params.totalTasks / totalSprints) || 13);
+    const done = index === completedSprints - 1 && params.projectStatus === "Completed"
+      ? committed
+      : Math.max(1, committed - (index % 2));
+
+    return {
+      number: index + 1,
+      goal: `Sprint ${index + 1} delivery`,
+      startDate: dates.startDate,
+      endDate: dates.endDate,
+      storyPointsTotal: committed,
+      storyPointsDone: Math.min(committed, done),
+      status: "Completed",
+      phases: buildCompletedSprintPhases(),
+    };
+  });
+
+  const activeNumber = params.projectStatus === "Completed"
+    ? Math.max(targetCurrentNumber, completedSprints + 1)
+    : targetCurrentNumber;
+  const activeDates = splitSprintDates(params.startDate, params.endDate, totalSprints, activeNumber - 1);
+  const currentSprint: Sprint = {
+    number: activeNumber,
+    goal: params.goal,
+    startDate: activeDates.startDate,
+    endDate: activeDates.endDate,
+    storyPointsTotal: Math.max(8, params.totalTasks || 13),
+    storyPointsDone: params.projectStatus === "Completed"
+      ? Math.max(8, params.totalTasks || 13)
+      : Math.min(Math.max(0, params.doneTasks), Math.max(8, params.totalTasks || 13)),
+    status: params.projectStatus === "Completed" ? "Completed" : completedSprints === 0 ? "Planning" : "Active",
+    phases: params.projectStatus === "Completed"
+      ? buildCompletedSprintPhases()
+      : buildActiveSprintPhases(params.completionRate, params.riskLevel, params.projectStatus),
+  };
+
+  return { currentSprint, sprintHistory };
+}
+
 // ── Main loader ───────────────────────────────────────────────────────────────
 
 export function loadRealData(): { projects: Project[]; resources: Resource[] } {
@@ -113,6 +218,8 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
 
   const projects: Project[] = metrics.map((m) => {
     const sprint = loadSprintFile(m.projectCode);
+    const insights = loadInsights(m.projectCode);
+    const criticalInsights = insights.keyRisks.filter((s) => s.level === "critical").length;
 
     // ── Priority ─────────────────────────────────────────────────────────────
     const priority: Project["priority"] =
@@ -184,8 +291,8 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
 
     // ── Sprint/time progress info ─────────────────────────────────────────────
     const sprintLenDays = 14;
-    const sprintsDone = m.totalDays > 0 ? Math.max(0, Math.round(m.daysElapsed / sprintLenDays)) : 0;
-    const sprintsTotal = m.totalDays > 0 ? Math.max(1, Math.round(m.totalDays / sprintLenDays)) : 1;
+    const completedSprints = m.totalDays > 0 ? Math.max(0, Math.round(m.daysElapsed / sprintLenDays)) : 0;
+    const totalSprints = m.totalDays > 0 ? Math.max(1, Math.round(m.totalDays / sprintLenDays)) : 1;
 
     // ── KPIs ──────────────────────────────────────────────────────────────────
     const kpis: KPI[] = [
@@ -215,18 +322,30 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
       : undefined;
 
     // ── Status ──────────────────────────────────────────────────────────────
-    let status: Project["status"] = "On Track";
-    if (phases) {
-      // Waterfall: Completed only when ALL phases are Completed
-      if (phases.every((ph) => ph.status === "Completed")) status = "Completed";
-      else if (m.riskLevel === "Critical") status = "Delayed";
-      else if (m.riskLevel === "High" || m.riskLevel === "Medium") status = "At Risk";
-    } else {
-      // Scrum / no phases: fall back to completion rate
-      if (m.completion.completionRate >= 98) status = "Completed";
-      else if (m.riskLevel === "Critical") status = "Delayed";
-      else if (m.riskLevel === "High" || m.riskLevel === "Medium") status = "At Risk";
+    const derivedStatus = deriveProjectStatus(m);
+    let status: Project["status"] = mapDerivedStatus(derivedStatus);
+    if (phases?.every((ph) => ph.status === "Completed")) {
+      status = "Completed";
+    } else if (!phases && m.completion.completionRate >= 98) {
+      status = "Completed";
     }
+
+    const scrumGoal = `${m.flags.length > 0 ? m.flags[0] : `${m.daysRemaining} days remaining`}`;
+    const scrumSeries = projectType === "Scrum"
+      ? buildScrumSeries({
+          projectStatus: status,
+          startDate: m.period.start || sprint.periodStart || "-",
+          endDate: m.period.end || sprint.periodEnd || "-",
+          totalSprints,
+          completedSprints,
+          sprintNumber: sprint.sprintNumber,
+          completionRate: m.completion.completionRate,
+          riskLevel: m.riskLevel,
+          doneTasks,
+          totalTasks,
+          goal: scrumGoal,
+        })
+      : null;
 
     return {
       id: m.projectCode,
@@ -239,24 +358,18 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
       endDate: m.period.end || sprint.periodEnd || "-",
       lead,
       overdueTasks,
+      criticalInsights,
       activeRisks: risks.filter((r) => r.status === "Active").length,
       atRiskDeps: 0,
       progress: Math.round(m.completion.completionRate),
       budget: { total: 0, spent: 0, monthly: [] },
       phases,
-      // Scrum sprint info (used for card body + dialog overview)
-      sprintsDone,
-      sprintsTotal,
-      currentSprint: {
-        number: sprintsDone + 1,
-        total: sprintsTotal,
-        goal: `${m.flags.length > 0 ? m.flags[0] : `${m.daysRemaining} days remaining`}`,
-        pointsDone: doneTasks,
-        pointsTotal: totalTasks,
-        velocity: doneTasks,
-        backlog: pendingTasks,
-        endDate: m.period.end || "-",
-      },
+      currentSprint: scrumSeries?.currentSprint,
+      totalSprints: projectType === "Scrum" ? totalSprints : undefined,
+      completedSprints: projectType === "Scrum" ? Math.min(completedSprints, totalSprints) : undefined,
+      velocity: projectType === "Scrum" ? doneTasks : undefined,
+      backlogItems: projectType === "Scrum" ? pendingTasks : undefined,
+      sprintHistory: scrumSeries?.sprintHistory,
       tasks,
       risks,
       dependencies: [],

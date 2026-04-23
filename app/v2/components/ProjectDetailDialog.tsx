@@ -13,6 +13,8 @@ import {
 import { Project, PhaseStatus, Task } from "../mockData";
 import { Dialog, Tabs, TabsList, TabsTrigger, TabsContent, Badge, Progress } from "./ui";
 import { logTime, updateStatus, updateTaskField, updateMilestone } from "@/lib/actions";
+import { SprintTimeline } from "./SprintTimeline";
+import { DailyFocusPanel } from "./DailyFocusPanel";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -120,6 +122,15 @@ function budgetBarClass(pct: number) {
   return "[&>div]:bg-emerald-500";
 }
 
+function calcTimelinePct(startDate: string, endDate: string) {
+  if (!startDate || !endDate || startDate === "-" || endDate === "-") return 0;
+  const start = new Date(startDate).getTime();
+  const end = new Date(endDate).getTime();
+  const now = Date.now();
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return 0;
+  return Math.max(0, Math.min(100, ((now - start) / (end - start)) * 100));
+}
+
 // ── Overview Tab ──────────────────────────────────────────────────────────────
 
 function OverviewTab({ p, projectCode }: { p: Project; projectCode: string }) {
@@ -164,8 +175,14 @@ function OverviewTab({ p, projectCode }: { p: Project; projectCode: string }) {
     );
   };
 
+  const sprintProgressPct = p.type === "Scrum"
+    ? calcTimelinePct(p.currentSprint?.startDate ?? p.startDate, p.currentSprint?.endDate ?? p.endDate)
+    : calcTimelinePct(p.startDate, p.endDate);
+
   return (
     <div className="space-y-6">
+      <DailyFocusPanel tasks={p.tasks} sprintProgressPct={sprintProgressPct} />
+
       {/* Overall progress */}
       <div>
         <div className="flex justify-between text-sm mb-2">
@@ -173,13 +190,13 @@ function OverviewTab({ p, projectCode }: { p: Project; projectCode: string }) {
           <span className="font-bold">{p.progress}%</span>
         </div>
         <Progress value={p.progress} className="h-2.5" />
-        {p.phases && (
+        {p.type === "Waterfall" && p.phases && (
           <p className="text-xs text-muted-foreground mt-1">{completedPhases} of 6 phases completed</p>
         )}
       </div>
 
       {/* Phase pipeline (Waterfall) */}
-      {p.phases && (
+      {p.type === "Waterfall" && p.phases && (
         <div>
           <h4 className="text-sm font-semibold mb-4">Phase Pipeline</h4>
           {/* Timeline nodes */}
@@ -228,40 +245,10 @@ function OverviewTab({ p, projectCode }: { p: Project; projectCode: string }) {
         </div>
       )}
 
-      {/* Current Sprint (Scrum only) */}
-      {p.currentSprint && p.type === "Scrum" && (
-        <div>
-          <h4 className="text-sm font-semibold mb-3">Current Sprint</h4>
-          <div className="border border-primary/30 bg-primary/5 rounded-lg p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">Sprint {p.currentSprint.number}</span>
-              <Badge className="bg-primary/15 text-primary border-primary/30">Active</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground italic">"{p.currentSprint.goal}"</p>
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Story Points</span>
-                <span className="font-semibold text-foreground">{p.currentSprint.pointsDone}/{p.currentSprint.pointsTotal}</span>
-              </div>
-              <Progress value={(p.currentSprint.pointsDone / p.currentSprint.pointsTotal) * 100} className="h-2" />
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: "Sprints Done", value: `${p.sprintsDone}/${p.sprintsTotal}` },
-                { label: "Velocity", value: p.currentSprint.velocity },
-                { label: "Backlog", value: p.currentSprint.backlog },
-              ].map((s) => (
-                <div key={s.label} className="bg-muted/30 rounded-lg p-3 text-center">
-                  <p className="text-sm font-bold">{s.value}</p>
-                  <p className="text-xs text-muted-foreground">{s.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {p.type === "Scrum" && <SprintTimeline project={p} compact />}
 
       {/* Milestones */}
+      {p.type === "Waterfall" && (
       <div>
         <h4 className="text-sm font-semibold mb-3">Milestones & Timeline</h4>
         <div className="relative space-y-3 pl-6">
@@ -277,6 +264,7 @@ function OverviewTab({ p, projectCode }: { p: Project; projectCode: string }) {
           ))}
         </div>
       </div>
+      )}
 
       {/* KPIs */}
       {p.kpis.length > 0 && (
@@ -791,7 +779,7 @@ export function ProjectDetailDialog({ project: p, onClose, projectCode }: Props)
   const activeRisks  = p.risks.filter((r) => r.status === "Active").length;
 
   return (
-    <Dialog open={!!p} onClose={onClose}>
+    <Dialog open={!!p} onClose={onClose} maxWidth="max-w-7xl">
       {/* Dialog header */}
       <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
         <div className="flex items-start justify-between gap-3">
@@ -800,7 +788,7 @@ export function ProjectDetailDialog({ project: p, onClose, projectCode }: Props)
             <div className="flex flex-wrap gap-1.5">
               <Badge className={p.type === "Waterfall" ? "border-violet-500/40 bg-violet-500/10 text-violet-400" : "border-sky-500/40 bg-sky-500/10 text-sky-400"}>
                 {p.type === "Waterfall" ? <Layers className="w-3 h-3" /> : <GitBranch className="w-3 h-3" />}
-                {p.type}
+                {p.type === "Scrum" ? "Scrum / Sprint" : p.type}
               </Badge>
               <Badge className={`${STATUS_BADGE[p.status]}`}>
                 <StatusIcon className="w-3 h-3" />
@@ -836,6 +824,21 @@ export function ProjectDetailDialog({ project: p, onClose, projectCode }: Props)
                     <Link2 className="w-3.5 h-3.5" />{p.atRiskDeps} dependency at risk
                   </span>
                 )}
+              </div>
+            )}
+            {p.type === "Scrum" && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-border">
+                {[
+                  { label: "Progress", value: `${p.progress}%` },
+                  { label: "Budget", value: p.budget.total > 0 ? `$${Math.round(p.budget.spent / 1000)}k / $${Math.round(p.budget.total / 1000)}k` : "—" },
+                  { label: "Lead", value: p.lead },
+                  { label: "Team size", value: `${p.team.length} members` },
+                ].map((item) => (
+                  <div key={item.label} className="bg-muted/30 rounded-lg p-3 text-center">
+                    <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
+                    <p className="text-sm font-semibold">{item.value}</p>
+                  </div>
+                ))}
               </div>
             )}
           </div>

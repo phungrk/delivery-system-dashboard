@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import {
   Package, Users, TrendingUp, AlertTriangle, Activity,
-  TrendingDown, Search, Layers, GitBranch, Sun, Moon,
+  TrendingDown, Search, Layers, GitBranch, Sun, Moon, LayoutDashboard, CalendarRange,
 } from "lucide-react";
 import type { Project, Resource } from "./mockData";
 import { Tabs, TabsList, TabsTrigger, TabsContent, Input, Select } from "./components/ui";
@@ -11,6 +11,8 @@ import { StatCard } from "./components/StatCard";
 import { ProjectCard } from "./components/ProjectCard";
 import { ResourceCard } from "./components/ResourceCard";
 import { ResourceDetailDialog } from "./components/ResourceDetailDialog";
+import { PhaseBoard } from "./components/PhaseBoard";
+import { GanttChart } from "./components/GanttChart";
 
 // ── Projects Tab ──────────────────────────────────────────────────────────────
 
@@ -200,11 +202,19 @@ export function DeliveryDashboard({ initialProjects, initialResources }: Props) 
             <TabsTrigger value="projects" className="h-11 gap-2">
               <Package className="w-4 h-4" /> Projects
             </TabsTrigger>
+            <TabsTrigger value="phases" className="h-11 gap-2">
+              <LayoutDashboard className="w-4 h-4" /> Phase Board
+            </TabsTrigger>
+            <TabsTrigger value="gantt" className="h-11 gap-2">
+              <CalendarRange className="w-4 h-4" /> Gantt
+            </TabsTrigger>
             <TabsTrigger value="resources" className="h-11 gap-2">
               <Users className="w-4 h-4" /> Resources
             </TabsTrigger>
           </TabsList>
           <TabsContent value="projects"><ProjectsTab projects={initialProjects} /></TabsContent>
+          <TabsContent value="phases"><PhaseBoard projects={initialProjects} /></TabsContent>
+          <TabsContent value="gantt"><GanttChart projects={initialProjects} /></TabsContent>
           <TabsContent value="resources"><ResourcesTab resources={initialResources} /></TabsContent>
         </Tabs>
       </main>

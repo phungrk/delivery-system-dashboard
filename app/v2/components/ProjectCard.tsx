@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Layers, GitBranch, TrendingUp, AlertTriangle, Clock, CheckCircle, ChevronRight } from "lucide-react";
 import { Project, Phase, PhaseStatus } from "../mockData";
 import { Badge, Progress } from "./ui";
+import { SprintPhaseStepper } from "./SprintPhaseStepper";
+import { getActiveSprintPhaseName } from "../scrum";
 
 // ── Status / type helpers ────────────────────────────────────────────────────
 
@@ -95,62 +97,41 @@ function WaterfallCardBody({ phases, endDate }: { phases: Phase[]; endDate: stri
 
 // ── Scrum / generic task progress body ───────────────────────────────────────
 
-function TaskProgressBody({ project }: { project: Project }) {
+function ScrumCardBody({ project }: { project: Project }) {
   const sprint = project.currentSprint;
-  const isScrum = project.type === "Scrum";
-
   if (!sprint) {
-    // Minimal fallback: just show overall progress
     return (
       <div className="space-y-2">
-        <div className="flex justify-between text-xs text-muted-foreground mb-0.5">
-          <span>Progress</span>
-          <span className="font-medium text-foreground">{project.progress}%</span>
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-semibold text-foreground">No active sprint</span>
+          <span className="text-muted-foreground">Sprint data unavailable</span>
         </div>
-        <Progress value={project.progress} className="h-2" />
-        <div className="flex justify-end text-xs text-muted-foreground">
-          <span>Due {project.endDate}</span>
+        <SprintPhaseStepper />
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Sprint data pending</span>
+          <span>Ends {project.endDate}</span>
         </div>
       </div>
     );
   }
 
-  const pct = sprint.pointsTotal > 0 ? (sprint.pointsDone / sprint.pointsTotal) * 100 : project.progress;
-  const stats = isScrum
-    ? [
-        { label: "Points Done", value: `${sprint.pointsDone}/${sprint.pointsTotal}` },
-        { label: "Velocity", value: sprint.velocity },
-        { label: "Backlog", value: sprint.backlog },
-      ]
-    : [
-        { label: "Done", value: `${sprint.pointsDone}/${sprint.pointsTotal}` },
-        { label: "In Progress", value: project.tasks.filter((t) => t.status === "In Progress").length },
-        { label: "Overdue", value: project.overdueTasks },
-      ];
+  const activePhaseName = getActiveSprintPhaseName(sprint);
 
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-xs text-muted-foreground mb-0.5">
-        {isScrum
-          ? <span>Sprint {sprint.number}/{sprint.total}</span>
-          : <span>Tasks</span>
-        }
-        <span className="font-medium text-foreground">{Math.round(pct)}%</span>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-semibold text-foreground">Sprint {sprint.number}</span>
+        <span className="text-muted-foreground truncate text-right max-w-[160px]">{sprint.goal}</span>
       </div>
-      <Progress value={pct} className="h-2" />
-      <div className="grid grid-cols-3 gap-2 mt-1">
-        {stats.map((s) => (
-          <div key={s.label} className="bg-muted/40 rounded-md py-1.5 text-center">
-            <p className="text-xs font-semibold text-foreground">{s.value}</p>
-            <p className="text-[10px] text-muted-foreground">{s.label}</p>
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-between text-xs text-muted-foreground">
-        {isScrum
-          ? <span>Sprint {project.sprintsDone}/{project.sprintsTotal} done</span>
-          : <span>{sprint.pointsDone} of {sprint.pointsTotal} tasks done</span>
-        }
+      <SprintPhaseStepper phases={sprint.phases} allCompleted={sprint.status === "Completed"} />
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>
+          {activePhaseName
+            ? <>Active: <span className="text-foreground font-medium">{activePhaseName}</span></>
+            : sprint.status === "Completed"
+              ? <span className="text-emerald-400 font-medium">Sprint complete</span>
+              : `Sprint ${project.completedSprints ?? 0}/${project.totalSprints ?? "?"} done`}
+        </span>
         <span>Ends {sprint.endDate}</span>
       </div>
     </div>
@@ -193,13 +174,18 @@ export function ProjectCard({ project: p }: ProjectCardProps) {
       {/* Body */}
       {p.type === "Waterfall" && p.phases && p.phases.length > 0
         ? <WaterfallCardBody phases={p.phases} endDate={p.endDate} />
-        : <TaskProgressBody project={p} />
+        : <ScrumCardBody project={p} />
       }
 
       {/* Footer */}
       <div className="pt-2 border-t border-border flex justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-3">
           <span>Lead: <span className="text-foreground font-medium">{p.lead}</span></span>
+          {(p.criticalInsights ?? 0) > 0 && (
+            <span className="flex items-center gap-1 text-destructive font-medium">
+              🔴 {p.criticalInsights} critical
+            </span>
+          )}
           {p.overdueTasks > 0 && (
             <span className="flex items-center gap-1 text-destructive">
               <Clock className="w-3 h-3" />{p.overdueTasks} overdue

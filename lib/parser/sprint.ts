@@ -26,6 +26,7 @@ export type SprintFile = {
   projectCode: string;
   projectName: string;
   type: string;
+  sprintNumber: number | null;
   currentPhase: string; // e.g. "verification" or "design | implementation"
   periodStart: string;
   periodEnd: string;
@@ -157,7 +158,7 @@ export function loadSprintFile(projectCode: string): SprintFile {
   const warnings: string[] = [];
 
   if (!dir) {
-    return { projectCode, projectName: projectCode, type: "", currentPhase: "", periodStart: "", periodEnd: "", milestones: {}, tasks: [], timeLogByTask: {}, warnings: [`Folder not found for: ${projectCode}`] };
+    return { projectCode, projectName: projectCode, type: "", sprintNumber: null, currentPhase: "", periodStart: "", periodEnd: "", milestones: {}, tasks: [], timeLogByTask: {}, warnings: [`Folder not found for: ${projectCode}`] };
   }
 
   // Pick latest sprint-*.md or project.md or board.md
@@ -166,7 +167,7 @@ export function loadSprintFile(projectCode: string): SprintFile {
   ).sort().reverse();
 
   if (files.length === 0) {
-    return { projectCode, projectName: projectCode, type: "", currentPhase: "", periodStart: "", periodEnd: "", milestones: {}, tasks: [], timeLogByTask: {}, warnings: ["No sprint file found"] };
+    return { projectCode, projectName: projectCode, type: "", sprintNumber: null, currentPhase: "", periodStart: "", periodEnd: "", milestones: {}, tasks: [], timeLogByTask: {}, warnings: ["No sprint file found"] };
   }
 
   const content = fs.readFileSync(path.join(dir, files[0]), "utf-8");
@@ -181,6 +182,13 @@ export function loadSprintFile(projectCode: string): SprintFile {
 
   // Header fields
   const projectName = content.match(/^#\s+(?:Sprint \d+[^—\n]*—\s*|Sprint \d+:\s*|Board:\s*|Project:\s*)?(.+)/m)?.[1]?.trim() ?? projectCode;
+  const sprintNumberFromHeader = content.match(/^(?:Sprint|Srint):\s*(\d+)/im)?.[1];
+  const sprintNumberFromTitle = content.match(/^#.*?\bSprint\s+(\d+)\b/im)?.[1];
+  const sprintNumber = sprintNumberFromHeader
+    ? parseInt(sprintNumberFromHeader, 10)
+    : sprintNumberFromTitle
+      ? parseInt(sprintNumberFromTitle, 10)
+      : null;
   const currentPhase = content.match(/^Current Phase:\s*(.+)/m)?.[1]?.trim() ?? "";
   const periodMatch = content.match(/Period:\s*(\d{4}-\d{2}-\d{2})\s*→\s*(\d{4}-\d{2}-\d{2})/);
   const sprintMatch = content.match(/Sprint:\s*(\d{4}-\d{2}-\d{2})\s*→\s*(\d{4}-\d{2}-\d{2})/);
@@ -194,5 +202,5 @@ export function loadSprintFile(projectCode: string): SprintFile {
   const tasks = parseTasks(content, projectCode, today);
   const timeLogByTask = parseTimeLog(dir);
 
-  return { projectCode, projectName, type, currentPhase, periodStart, periodEnd, milestones, tasks, timeLogByTask, warnings };
+  return { projectCode, projectName, type, sprintNumber, currentPhase, periodStart, periodEnd, milestones, tasks, timeLogByTask, warnings };
 }

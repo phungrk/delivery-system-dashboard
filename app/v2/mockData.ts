@@ -10,6 +10,13 @@ export type RiskStatus = "Active" | "Mitigated" | "Closed";
 export type DepStatus = "Met" | "At Risk" | "Pending";
 export type DepType = "Blocks" | "Blocked By" | "Related To";
 export type TrendDir = "up" | "down" | "flat";
+export type SprintStatus = "Active" | "Completed" | "Planning";
+
+export interface SprintPhase {
+  name: string;
+  status: PhaseStatus;
+  progress: number;
+}
 
 export interface Phase {
   name: string;
@@ -20,13 +27,13 @@ export interface Phase {
 
 export interface Sprint {
   number: number;
-  total: number;
   goal: string;
-  pointsDone: number;
-  pointsTotal: number;
-  velocity: number;
-  backlog: number;
+  startDate: string;
   endDate: string;
+  storyPointsTotal: number;
+  storyPointsDone: number;
+  status: SprintStatus;
+  phases?: SprintPhase[];
 }
 
 export interface Task {
@@ -96,6 +103,7 @@ export interface Project {
   overdueTasks: number;
   activeRisks: number;
   atRiskDeps: number;
+  criticalInsights?: number;
   budget: {
     total: number;
     spent: number;
@@ -105,9 +113,12 @@ export interface Project {
   // Waterfall
   phases?: Phase[];
   // Scrum
-  sprintsDone?: number;
-  sprintsTotal?: number;
   currentSprint?: Sprint;
+  totalSprints?: number;
+  completedSprints?: number;
+  velocity?: number;
+  backlogItems?: number;
+  sprintHistory?: Sprint[];
   // Common
   tasks: Task[];
   risks: Risk[];
@@ -126,6 +137,27 @@ export interface Resource {
   projectCount: number;
   skills: string[];
   projects: { name: string; allocation: number; role: string }[];
+}
+
+const SPRINT_PHASE_NAMES = [
+  "Planning",
+  "PBI Approval",
+  "Implementation + UT",
+  "Verification + Fix Bug",
+  "Review",
+  "Release",
+  "Retrospective",
+] as const;
+
+function sprintPhases(
+  statuses: PhaseStatus[],
+  progresses?: number[],
+): SprintPhase[] {
+  return SPRINT_PHASE_NAMES.map((name, index) => ({
+    name,
+    status: statuses[index] ?? "To Do",
+    progress: progresses?.[index] ?? ((statuses[index] ?? "To Do") === "Completed" ? 100 : 0),
+  }));
 }
 
 // ── Mock Data ─────────────────────────────────────────────────────────────────
@@ -362,17 +394,30 @@ export const PROJECTS: Project[] = [
         { month: "Jun", planned: 30000, actual: 0 },
       ],
     },
-    sprintsDone: 6,
-    sprintsTotal: 8,
+    totalSprints: 8,
+    completedSprints: 6,
+    velocity: 36,
+    backlogItems: 12,
+    sprintHistory: [
+      { number: 1, goal: "Launch account dashboard foundation", startDate: "2026-01-05", endDate: "2026-01-16", storyPointsTotal: 30, storyPointsDone: 30, status: "Completed", phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]) },
+      { number: 2, goal: "Implement profile and authentication flow", startDate: "2026-01-19", endDate: "2026-01-30", storyPointsTotal: 32, storyPointsDone: 31, status: "Completed", phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]) },
+      { number: 3, goal: "Deliver support request intake", startDate: "2026-02-02", endDate: "2026-02-13", storyPointsTotal: 34, storyPointsDone: 34, status: "Completed", phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]) },
+      { number: 4, goal: "Add knowledge base and search", startDate: "2026-02-16", endDate: "2026-02-27", storyPointsTotal: 35, storyPointsDone: 34, status: "Completed", phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]) },
+      { number: 5, goal: "Integrate customer service workflows", startDate: "2026-03-02", endDate: "2026-03-13", storyPointsTotal: 36, storyPointsDone: 35, status: "Completed", phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]) },
+      { number: 6, goal: "Stabilize admin tools and notifications", startDate: "2026-03-16", endDate: "2026-03-27", storyPointsTotal: 36, storyPointsDone: 36, status: "Completed", phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]) },
+    ],
     currentSprint: {
       number: 7,
-      total: 8,
       goal: "Complete self-service ticket system and notifications module",
-      pointsDone: 28,
-      pointsTotal: 38,
-      velocity: 36,
-      backlog: 12,
+      startDate: "2026-04-20",
       endDate: "2026-05-02",
+      storyPointsTotal: 38,
+      storyPointsDone: 28,
+      status: "Active",
+      phases: sprintPhases(
+        ["Completed", "Completed", "On Track", "To Do", "To Do", "To Do", "To Do"],
+        [100, 100, 68, 0, 0, 0, 0],
+      ),
     },
     tasks: [
       { id: "T030", name: "Ticket Submission Form", assignee: "Emily Ho", deliverable: "UI Component", status: "Done", dueDate: "2026-04-18" },
@@ -431,17 +476,26 @@ export const PROJECTS: Project[] = [
         { month: "Jul", planned: 20000, actual: 0 },
       ],
     },
-    sprintsDone: 2,
-    sprintsTotal: 5,
+    totalSprints: 5,
+    completedSprints: 2,
+    velocity: 28,
+    backlogItems: 38,
+    sprintHistory: [
+      { number: 1, goal: "Set analytics vision and data contracts", startDate: "2026-02-16", endDate: "2026-02-27", storyPointsTotal: 28, storyPointsDone: 26, status: "Completed", phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]) },
+      { number: 2, goal: "Prototype dashboards and ingestion spike", startDate: "2026-03-02", endDate: "2026-03-13", storyPointsTotal: 30, storyPointsDone: 28, status: "Completed", phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]) },
+    ],
     currentSprint: {
       number: 3,
-      total: 5,
       goal: "Real-time data pipeline and chart rendering engine",
-      pointsDone: 15,
-      pointsTotal: 40,
-      velocity: 28,
-      backlog: 38,
+      startDate: "2026-04-28",
       endDate: "2026-05-09",
+      storyPointsTotal: 40,
+      storyPointsDone: 15,
+      status: "Active",
+      phases: sprintPhases(
+        ["Completed", "Completed", "At Risk", "To Do", "To Do", "To Do", "To Do"],
+        [100, 100, 55, 0, 0, 0, 0],
+      ),
     },
     tasks: [
       { id: "T040", name: "Data Pipeline Architecture", assignee: "Henry Dao", deliverable: "Architecture Doc", status: "Done", dueDate: "2026-03-15" },
@@ -499,17 +553,26 @@ export const PROJECTS: Project[] = [
         { month: "Feb", planned: 18000, actual: 13000 },
       ],
     },
-    sprintsDone: 6,
-    sprintsTotal: 6,
+    totalSprints: 6,
+    completedSprints: 6,
+    velocity: 34,
+    backlogItems: 0,
+    sprintHistory: [
+      { number: 1, goal: "Baseline gateway requirements", startDate: "2025-09-01", endDate: "2025-09-14", storyPointsTotal: 26, storyPointsDone: 26, status: "Completed", phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]) },
+      { number: 2, goal: "Implement routing and observability", startDate: "2025-10-05", endDate: "2025-10-18", storyPointsTotal: 28, storyPointsDone: 28, status: "Completed", phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]) },
+      { number: 3, goal: "Roll out auth and rate limiting", startDate: "2025-11-09", endDate: "2025-11-22", storyPointsTotal: 30, storyPointsDone: 29, status: "Completed", phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]) },
+      { number: 4, goal: "Expand traffic management controls", startDate: "2025-12-14", endDate: "2025-12-27", storyPointsTotal: 32, storyPointsDone: 32, status: "Completed", phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]) },
+      { number: 5, goal: "Harden logging and monitoring", startDate: "2026-01-18", endDate: "2026-01-31", storyPointsTotal: 34, storyPointsDone: 34, status: "Completed", phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]) },
+    ],
     currentSprint: {
       number: 6,
-      total: 6,
       goal: "Final performance tuning and documentation",
-      pointsDone: 35,
-      pointsTotal: 35,
-      velocity: 34,
-      backlog: 0,
+      startDate: "2026-03-18",
       endDate: "2026-03-31",
+      storyPointsTotal: 35,
+      storyPointsDone: 35,
+      status: "Completed",
+      phases: sprintPhases(["Completed", "Completed", "Completed", "Completed", "Completed", "Completed", "Completed"]),
     },
     tasks: [
       { id: "T050", name: "Service Mesh Setup", assignee: "Frank Vo", deliverable: "Infrastructure", status: "Done", dueDate: "2026-01-31" },
