@@ -1,105 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
-  Package, Users, TrendingUp, AlertTriangle, Activity,
-  TrendingDown, Search, Layers, GitBranch, Sun, Moon, LayoutDashboard, CalendarRange,
+  Users, TrendingDown, Sun, Moon, FolderKanban, Search, Activity, AlertTriangle,
 } from "lucide-react";
 import type { Project, Resource } from "./mockData";
 import { Tabs, TabsList, TabsTrigger, TabsContent, Input, Select } from "./components/ui";
-import { StatCard } from "./components/StatCard";
-import { ProjectCard } from "./components/ProjectCard";
 import { ResourceCard } from "./components/ResourceCard";
 import { ResourceDetailDialog } from "./components/ResourceDetailDialog";
-import { PhaseBoard } from "./components/PhaseBoard";
-import { GanttChart } from "./components/GanttChart";
-
-// ── Projects Tab ──────────────────────────────────────────────────────────────
-
-function ProjectsTab({ projects }: { projects: Project[] }) {
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"All" | "Waterfall" | "Scrum">("All");
-  const [statusFilter, setStatusFilter] = useState("all");
-
-  const filtered = useMemo(() => projects.filter((p) => {
-    const q = search.toLowerCase();
-    const matchSearch = !q || p.name.toLowerCase().includes(q) || p.client.toLowerCase().includes(q);
-    const matchType = typeFilter === "All" || p.type === typeFilter;
-    const matchStatus = statusFilter === "all" || p.status.toLowerCase().replace(/ /g, "-") === statusFilter;
-    return matchSearch && matchType && matchStatus;
-  }), [projects, search, typeFilter, statusFilter]);
-
-  const total      = projects.length;
-  const waterfall  = projects.filter((p) => p.type === "Waterfall").length;
-  const scrum      = projects.filter((p) => p.type === "Scrum").length;
-  const onTrack    = projects.filter((p) => p.status === "On Track" || p.status === "Completed").length;
-  const delayed    = projects.filter((p) => p.status === "Delayed").length;
-  const atRisk     = projects.filter((p) => p.status === "At Risk").length;
-  const totalBudget = projects.reduce((s, p) => s + p.budget.total, 0);
-  const totalSpent  = projects.reduce((s, p) => s + p.budget.spent, 0);
-
-  const toggleBtn = (label: string, active: boolean, onClick: () => void, icon?: React.ReactNode) => (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-        active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      {icon}{label}
-    </button>
-  );
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Projects" value={String(total)} sub={`${waterfall} Waterfall · ${scrum} Scrum`} icon={Package} iconClass="text-primary" />
-        <StatCard label="On Track" value={String(onTrack)} sub={`${delayed} delayed`} icon={TrendingUp} iconClass="text-emerald-400" />
-        <StatCard label="At Risk" value={String(atRisk)} sub="Need attention" icon={AlertTriangle} iconClass="text-yellow-400" />
-        <StatCard
-          label="Budget Spent"
-          value={totalBudget > 0 ? `$${Math.round(totalSpent / 1000)}k` : "—"}
-          sub={totalBudget > 0 ? `of $${Math.round(totalBudget / 1000)}k total` : "No budget data"}
-          icon={Activity}
-          iconClass="text-blue-400"
-        />
-      </div>
-
-      <div className="flex gap-3 flex-wrap items-center">
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search projects or clients..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex bg-muted/40 rounded-lg p-1 gap-0.5">
-          {toggleBtn("All", typeFilter === "All", () => setTypeFilter("All"))}
-          {toggleBtn("Waterfall", typeFilter === "Waterfall", () => setTypeFilter("Waterfall"), <Layers className="w-3.5 h-3.5" />)}
-          {toggleBtn("Scrum", typeFilter === "Scrum", () => setTypeFilter("Scrum"), <GitBranch className="w-3.5 h-3.5" />)}
-        </div>
-        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-40">
-          <option value="all">All Statuses</option>
-          <option value="on-track">On Track</option>
-          <option value="at-risk">At Risk</option>
-          <option value="delayed">Delayed</option>
-          <option value="completed">Completed</option>
-        </Select>
-      </div>
-
-      {filtered.length === 0 ? (
-        <p className="text-center text-muted-foreground py-12">No projects match your filters.</p>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {filtered.map((p) => (
-            <ProjectCard key={p.id} project={p} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+import { ProjectWorkspace } from "./components/ProjectWorkspace";
+import { StatCard } from "./components/StatCard";
 
 // ── Resources Tab ─────────────────────────────────────────────────────────────
 
@@ -165,8 +75,6 @@ function ResourcesTab({ resources }: { resources: Resource[] }) {
   );
 }
 
-// ── Main Dashboard ────────────────────────────────────────────────────────────
-
 interface Props {
   initialProjects: Project[];
   initialResources: Resource[];
@@ -197,25 +105,17 @@ export function DeliveryDashboard({ initialProjects, initialResources }: Props) 
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <Tabs defaultValue="projects">
+        <Tabs defaultValue="project">
           <TabsList className="border-b border-border mb-8 gap-1">
-            <TabsTrigger value="projects" className="h-11 gap-2">
-              <Package className="w-4 h-4" /> Projects
+            <TabsTrigger value="project" className="h-11 gap-2">
+              <FolderKanban className="w-4 h-4" /> Project
             </TabsTrigger>
-            <TabsTrigger value="phases" className="h-11 gap-2">
-              <LayoutDashboard className="w-4 h-4" /> Phase Board
-            </TabsTrigger>
-            <TabsTrigger value="gantt" className="h-11 gap-2">
-              <CalendarRange className="w-4 h-4" /> Gantt
-            </TabsTrigger>
-            <TabsTrigger value="resources" className="h-11 gap-2">
-              <Users className="w-4 h-4" /> Resources
+            <TabsTrigger value="resource" className="h-11 gap-2">
+              <Users className="w-4 h-4" /> Resource
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="projects"><ProjectsTab projects={initialProjects} /></TabsContent>
-          <TabsContent value="phases"><PhaseBoard projects={initialProjects} /></TabsContent>
-          <TabsContent value="gantt"><GanttChart projects={initialProjects} /></TabsContent>
-          <TabsContent value="resources"><ResourcesTab resources={initialResources} /></TabsContent>
+          <TabsContent value="project"><ProjectWorkspace projects={initialProjects} /></TabsContent>
+          <TabsContent value="resource"><ResourcesTab resources={initialResources} /></TabsContent>
         </Tabs>
       </main>
     </div>
