@@ -1,7 +1,15 @@
-import membersRaw from "@/data/members.json";
-import allocsRaw from "@/data/allocations.json";
-import capacityRaw from "@/data/capacity.json";
-import projectsRaw from "@/data/projects.json";
+import fs from "fs";
+import path from "path";
+import { RESOURCES_DIR } from "./paths";
+
+function loadJson(file: string) {
+  return JSON.parse(fs.readFileSync(path.join(RESOURCES_DIR, file), "utf-8"));
+}
+
+const membersRaw  = loadJson("members.json");
+const allocsRaw   = loadJson("allocations.json");
+const capacityRaw = loadJson("capacity.json");
+const projectsRaw = loadJson("projects.json");
 import {
   AllocationsFileSchema,
   CapacityFileSchema,

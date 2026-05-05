@@ -1,9 +1,11 @@
 import fs from "fs";
 import path from "path";
-import projectsRaw from "@/data/projects.json";
 import { ProjectsFileSchema } from "./data-schemas";
+import { RESOURCES_DIR } from "./paths";
 
-const PROJECTS = ProjectsFileSchema.parse(projectsRaw).data;
+const PROJECTS = ProjectsFileSchema.parse(
+  JSON.parse(fs.readFileSync(path.join(RESOURCES_DIR, "projects.json"), "utf-8"))
+).data;
 
 // Scans baseDir for [Domain]/[projectCode] two-level structure.
 // Returns full path to project dir, or null if not found.

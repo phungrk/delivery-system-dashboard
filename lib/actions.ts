@@ -4,11 +4,10 @@ import fs from "fs";
 import path from "path";
 import { revalidatePath } from "next/cache";
 import { findProjectDir } from "./projectDir";
-import allocsRaw from "@/data/allocations.json";
 import { AllocationsFileSchema } from "./data-schemas";
+import { INPUT_DIR, RESOURCES_DIR } from "./paths";
 
-const INPUT_DIR = path.join(process.cwd(), "..", "input");
-const DATA_DIR = path.join(process.cwd(), "data");
+const DATA_DIR = RESOURCES_DIR;
 
 // ── File finder ──────────────────────────────────────────────────────────────
 
@@ -315,9 +314,7 @@ export async function updateWeeklyAllocation(
   try {
     const filePath = path.join(DATA_DIR, "allocations.json");
     const parsed = AllocationsFileSchema.parse(
-      fs.existsSync(filePath)
-        ? JSON.parse(fs.readFileSync(filePath, "utf-8"))
-        : allocsRaw,
+      JSON.parse(fs.readFileSync(filePath, "utf-8"))
     );
 
     const record = parsed.data.find(

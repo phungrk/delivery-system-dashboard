@@ -1,13 +1,14 @@
 import fs from "fs";
 import path from "path";
-import projectsRaw from "@/data/projects.json";
 import { ProjectsFileSchema, type RawProject } from "./data-schemas";
+import { RESOURCES_DIR, INPUT_DIR } from "./paths";
 
 const ROOT_DIR = path.join(process.cwd(), "..");
-const INPUT_DIR = path.join(ROOT_DIR, "input");
 const PROCESSED_DIR = path.join(ROOT_DIR, "processed");
 
-const PROJECTS = ProjectsFileSchema.parse(projectsRaw).data;
+const PROJECTS = ProjectsFileSchema.parse(
+  JSON.parse(fs.readFileSync(path.join(RESOURCES_DIR, "projects.json"), "utf-8"))
+).data;
 
 export interface MarkdownProjectListItem {
   code: string;
