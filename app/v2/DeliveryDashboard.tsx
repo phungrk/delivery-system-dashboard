@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
-  Users, TrendingDown, Sun, Moon, FolderKanban, Search, Activity, AlertTriangle,
+  Users, TrendingDown, Sun, Moon, FolderKanban, Search, Activity, AlertTriangle, ExternalLink,
 } from "lucide-react";
 import type { Project, Resource } from "./mockData";
 import { Tabs, TabsList, TabsTrigger, TabsContent, Input, Select } from "./components/ui";
@@ -36,11 +37,22 @@ function ResourcesTab({ resources }: { resources: Resource[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Resources" value={String(resources.length)} sub="Team members" icon={Users} iconClass="text-primary" />
-        <StatCard label="Avg Utilization" value={`${avgUtil}%`} sub="Across all members" icon={Activity} iconClass="text-blue-400" />
-        <StatCard label="Overloaded" value={String(overloaded)} sub="≥95% allocated" icon={AlertTriangle} iconClass="text-red-400" />
-        <StatCard label="Available" value={String(available)} sub="≤70% allocated" icon={TrendingDown} iconClass="text-emerald-400" />
+      <div className="flex items-center justify-between">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
+          <StatCard label="Total Resources" value={String(resources.length)} sub="Team members" icon={Users} iconClass="text-primary" />
+          <StatCard label="Avg Utilization" value={`${avgUtil}%`} sub="Across all members" icon={Activity} iconClass="text-blue-400" />
+          <StatCard label="Overloaded" value={String(overloaded)} sub="≥95% allocated" icon={AlertTriangle} iconClass="text-red-400" />
+          <StatCard label="Available" value={String(available)} sub="≤70% allocated" icon={TrendingDown} iconClass="text-emerald-400" />
+        </div>
+        <div className="ml-4 flex-shrink-0">
+          <Link
+            href="/v2/resource-center"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary text-primary text-sm font-medium hover:bg-primary/10 transition-colors"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Resource Center
+          </Link>
+        </div>
       </div>
 
       <div className="flex gap-3 flex-wrap items-center">
