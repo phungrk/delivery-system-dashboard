@@ -1,0 +1,1334 @@
+{
+  "version": "3.1",
+  "updatedAt": "2026-05-06",
+  "data": [
+    {
+      "id": "a001",
+      "memberCode": "cao-phung",
+      "projectCode": "ASCL",
+      "weeklyHours": [
+        {
+          "weekStart": "2026-04-20",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-05-04",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-05-11",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-05-18",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-05-25",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-06-01",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-06-08",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-06-15",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-06-22",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-06-29",
+          "hours": 6
+        }
+      ]
+    },
+    {
+      "id": "a002",
+      "memberCode": "cao-phung",
+      "projectCode": "CDMD",
+      "weeklyHours": [
+        {
+          "weekStart": "2026-01-12",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-01-19",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-01-26",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-02-02",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-02-09",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-02-16",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-02-23",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-03-02",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-03-09",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-03-16",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-03-23",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-03-30",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-04-06",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-04-13",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-04-20",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-05-04",
+          "hours": 3
+        }
+      ]
+    },
+    {
+      "id": "a003",
+      "memberCode": "cao-phung",
+      "projectCode": "DES-PH4",
+      "weeklyHours": [
+        {
+          "weekStart": "2025-07-07",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-07-14",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-07-21",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-07-28",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-08-04",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-08-11",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-08-18",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-08-25",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-09-01",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-09-08",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-09-15",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-09-22",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-09-29",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-10-06",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-10-13",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-10-20",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-10-27",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-11-03",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-11-10",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-11-17",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-11-24",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-12-01",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-12-08",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-12-15",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-12-22",
+          "hours": 10
+        },
+        {
+          "weekStart": "2025-12-29",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-01-05",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-01-12",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-01-19",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-01-26",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-02-02",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-02-09",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-02-16",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-02-23",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-03-02",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-03-09",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-03-16",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-03-23",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-03-30",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-04-06",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-04-13",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-04-20",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-05-04",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-05-11",
+          "hours": 10
+        }
+      ]
+    },
+    {
+      "id": "a004",
+      "memberCode": "cao-phung",
+      "projectCode": "MLNG",
+      "weeklyHours": [
+        {
+          "weekStart": "2025-11-17",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-11-24",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-12-01",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-12-08",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-12-15",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-12-22",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-12-29",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-01-05",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-01-12",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-01-19",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-01-26",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-02-02",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-02-09",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-02-16",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-02-23",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-03-02",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-03-09",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-03-16",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-03-23",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-03-30",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-04-06",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-04-13",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-04-20",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-05-04",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-05-11",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-05-18",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-05-25",
+          "hours": 6
+        }
+      ]
+    },
+    {
+      "id": "a005",
+      "memberCode": "cao-phung",
+      "projectCode": "ML-AMTK",
+      "weeklyHours": [
+        {
+          "weekStart": "2025-08-25",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-09-01",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-09-08",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-09-15",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-09-22",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-09-29",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-10-06",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-10-13",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-10-20",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-10-27",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-11-03",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-11-10",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-11-17",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-11-24",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-12-01",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-12-08",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-12-15",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-12-22",
+          "hours": 6
+        },
+        {
+          "weekStart": "2025-12-29",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-01-05",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-01-12",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-01-19",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-01-26",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-02-02",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-02-09",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-02-16",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-02-23",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-03-02",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-03-09",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-03-16",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-03-23",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-03-30",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-04-06",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-04-13",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-04-20",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-05-04",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-05-11",
+          "hours": 6
+        }
+      ]
+    },
+    {
+      "id": "a006",
+      "memberCode": "cao-phung",
+      "projectCode": "HAYK",
+      "weeklyHours": [
+        {
+          "weekStart": "2026-03-30",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-04-06",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-04-13",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-04-20",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-05-04",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-05-11",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-05-18",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-05-25",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-06-01",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-06-08",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-06-15",
+          "hours": 6
+        },
+        {
+          "weekStart": "2026-06-22",
+          "hours": 6
+        }
+      ]
+    },
+    {
+      "id": "a007",
+      "memberCode": "cao-phung",
+      "projectCode": "CL-REG",
+      "weeklyHours": [
+        {
+          "weekStart": "2025-12-01",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-12-08",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-12-15",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-12-22",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-12-29",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-01-05",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-01-12",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-01-19",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-01-26",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-02-02",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-02-09",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-02-16",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-02-23",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-03-02",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-03-09",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-03-16",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-03-23",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-03-30",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-04-06",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-04-13",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-04-20",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-05-04",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-05-11",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-05-18",
+          "hours": 8
+        }
+      ]
+    },
+    {
+      "id": "a008",
+      "memberCode": "cao-phung",
+      "projectCode": "CL-eNV",
+      "weeklyHours": [
+        {
+          "weekStart": "2026-04-06",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-04-13",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-04-20",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-05-04",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-05-11",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-05-18",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-05-25",
+          "hours": 4
+        }
+      ]
+    },
+    {
+      "id": "a009",
+      "memberCode": "duy-vuong",
+      "projectCode": "CDMD",
+      "weeklyHours": [
+        {
+          "weekStart": "2026-01-12",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-01-19",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-01-26",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-02-02",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-02-09",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-02-16",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-02-23",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-03-02",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-03-09",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-03-16",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-03-23",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-03-30",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-04-06",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-04-13",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-04-20",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 24
+        },
+        {
+          "weekStart": "2026-05-04",
+          "hours": 24
+        }
+      ]
+    },
+    {
+      "id": "a010",
+      "memberCode": "duy-vuong",
+      "projectCode": "HAYK",
+      "weeklyHours": [
+        {
+          "weekStart": "2026-03-30",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-04-06",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-04-13",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-04-20",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-05-04",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-05-11",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-05-18",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-05-25",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-06-01",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-06-08",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-06-15",
+          "hours": 10
+        },
+        {
+          "weekStart": "2026-06-22",
+          "hours": 10
+        }
+      ]
+    },
+    {
+      "id": "a011",
+      "memberCode": "duy-vuong",
+      "projectCode": "ASCL",
+      "weeklyHours": [
+        {
+          "weekStart": "2026-05-11",
+          "hours": 16
+        },
+        {
+          "weekStart": "2026-05-18",
+          "hours": 16
+        },
+        {
+          "weekStart": "2026-05-25",
+          "hours": 16
+        },
+        {
+          "weekStart": "2026-06-01",
+          "hours": 16
+        },
+        {
+          "weekStart": "2026-06-08",
+          "hours": 16
+        },
+        {
+          "weekStart": "2026-06-15",
+          "hours": 16
+        },
+        {
+          "weekStart": "2026-06-22",
+          "hours": 16
+        },
+        {
+          "weekStart": "2026-06-29",
+          "hours": 16
+        }
+      ]
+    },
+    {
+      "id": "a012",
+      "memberCode": "duy-vuong",
+      "projectCode": "ML-AMTK",
+      "weeklyHours": [
+        {
+          "weekStart": "2026-04-27",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-05-04",
+          "hours": 4
+        }
+      ]
+    },
+    {
+      "id": "a013",
+      "memberCode": "duy-vuong",
+      "projectCode": "CL-REG",
+      "weeklyHours": [
+        {
+          "weekStart": "2026-04-13",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-04-20",
+          "hours": 4
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 4
+        }
+      ]
+    },
+    {
+      "id": "a014",
+      "memberCode": "phi-hoang",
+      "projectCode": "ML-AMTK",
+      "weeklyHours": [
+        {
+          "weekStart": "2025-08-25",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-09-01",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-09-08",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-09-15",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-09-22",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-09-29",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-10-06",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-10-13",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-10-20",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-10-27",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-11-03",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-11-10",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-11-17",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-11-24",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-12-01",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-12-08",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-12-15",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-12-22",
+          "hours": 8
+        },
+        {
+          "weekStart": "2025-12-29",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-01-05",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-01-12",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-01-19",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-01-26",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-02-02",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-02-09",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-02-16",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-02-23",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-03-02",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-03-09",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-03-16",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-03-23",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-03-30",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-04-06",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-04-13",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-04-20",
+          "hours": 8
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 8
+        }
+      ]
+    },
+    {
+      "id": "a015",
+      "memberCode": "phi-hoang",
+      "projectCode": "MLNG",
+      "weeklyHours": [
+        {
+          "weekStart": "2025-11-17",
+          "hours": 12
+        },
+        {
+          "weekStart": "2025-11-24",
+          "hours": 12
+        },
+        {
+          "weekStart": "2025-12-01",
+          "hours": 12
+        },
+        {
+          "weekStart": "2025-12-08",
+          "hours": 12
+        },
+        {
+          "weekStart": "2025-12-15",
+          "hours": 12
+        },
+        {
+          "weekStart": "2025-12-22",
+          "hours": 12
+        },
+        {
+          "weekStart": "2025-12-29",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-01-05",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-01-12",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-01-19",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-01-26",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-02-02",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-02-09",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-02-16",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-02-23",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-03-02",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-03-09",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-03-16",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-03-23",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-03-30",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-04-06",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-04-13",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-04-20",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-05-04",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-05-11",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-05-18",
+          "hours": 12
+        },
+        {
+          "weekStart": "2026-05-25",
+          "hours": 12
+        }
+      ]
+    },
+    {
+      "id": "a016",
+      "memberCode": "phi-hoang",
+      "projectCode": "HAYK",
+      "weeklyHours": [
+        {
+          "weekStart": "2026-04-06",
+          "hours": 26
+        },
+        {
+          "weekStart": "2026-04-13",
+          "hours": 26
+        },
+        {
+          "weekStart": "2026-04-20",
+          "hours": 26
+        },
+        {
+          "weekStart": "2026-04-27",
+          "hours": 26
+        },
+        {
+          "weekStart": "2026-05-04",
+          "hours": 26
+        },
+        {
+          "weekStart": "2026-05-11",
+          "hours": 26
+        },
+        {
+          "weekStart": "2026-05-18",
+          "hours": 26
+        },
+        {
+          "weekStart": "2026-05-25",
+          "hours": 26
+        },
+        {
+          "weekStart": "2026-06-01",
+          "hours": 26
+        },
+        {
+          "weekStart": "2026-06-08",
+          "hours": 26
+        },
+        {
+          "weekStart": "2026-06-15",
+          "hours": 26
+        },
+        {
+          "weekStart": "2026-06-22",
+          "hours": 26
+        }
+      ]
+    }
+  ]
+}

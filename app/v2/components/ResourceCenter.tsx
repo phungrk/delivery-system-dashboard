@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { updateWeeklyAllocation } from "@/lib/actions";
 import {
   Info, Search, HelpCircle, Bell, User,
   ChevronLeft, ChevronRight, ChevronDown, Settings, Share2,
@@ -10,35 +11,33 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type PColor = "violet" | "sky" | "pink" | "orange" | "teal" | "blue";
+type PColor = "violet" | "sky" | "pink" | "orange" | "teal" | "blue" | "emerald" | "amber";
 type Scale  = "D" | "W" | "M";
 
-interface Week { id: string; top: string; bot: string; unavail: boolean }
+export interface ResourceCenterWeek { id: string; iso: string; top: string; bot: string; unavail: boolean }
 
-interface AllocBar { startW: number; endW: number; pct: number; label: string }
-
-interface MemberProj {
+export interface ResourceCenterMemberProj {
   id: string; name: string; color: PColor;
-  estH: number; actualH?: number; bars: AllocBar[];
+  estH: number; actualH?: number; weeklyHours: number[];
 }
 
-interface Member {
-  id: string; name: string; role: string; initials: string; ac: string;
+export interface ResourceCenterMember {
+  id: string; name: string; role: string; initials: string; avatarColor: string;
   util: number[]; // % per week (0–120+)
-  projects: MemberProj[];
+  projects: ResourceCenterMemberProj[];
 }
 
-interface ResourceRow {
-  id: string; name: string; initials: string; ac: string;
+export interface ResourceCenterResourceRow {
+  id: string; name: string; initials: string; avatarColor: string;
   estH: number; allocH: number; util: number[];
 }
 
-interface ProjectRC {
+export interface ResourceCenterProject {
   id: string; name: string; count: number;
   status: "Active" | "Pipeline" | "On Hold" | "Complete";
   budget: string; eac: string; actualFees: string;
   barStart: number; barEnd: number;
-  resources: ResourceRow[];
+  resources: ResourceCenterResourceRow[];
 }
 
 // ── Layout Constants ──────────────────────────────────────────────────────────
@@ -58,8 +57,10 @@ const PC: Record<PColor, { bg: string; bd: string; txt: string; dot: string }> =
   sky:    { bg: "hsl(199 89% 50% / 0.72)", bd: "hsl(199 89% 50% / 0.45)", txt: "text-sky-400",    dot: "bg-sky-400"     },
   pink:   { bg: "hsl(330 65% 58% / 0.72)", bd: "hsl(330 65% 58% / 0.45)", txt: "text-pink-400",   dot: "bg-pink-500"    },
   orange: { bg: "hsl(25 95% 53% / 0.72)",  bd: "hsl(25 95% 53% / 0.45)",  txt: "text-orange-400", dot: "bg-orange-500"  },
-  teal:   { bg: "hsl(172 68% 42% / 0.72)", bd: "hsl(172 68% 42% / 0.45)", txt: "text-teal-400",   dot: "bg-teal-500"    },
-  blue:   { bg: "hsl(217 91% 60% / 0.72)", bd: "hsl(217 91% 60% / 0.45)", txt: "text-blue-400",   dot: "bg-blue-500"    },
+  teal:    { bg: "hsl(172 68% 42% / 0.72)", bd: "hsl(172 68% 42% / 0.45)", txt: "text-teal-400",    dot: "bg-teal-500"    },
+  blue:    { bg: "hsl(217 91% 60% / 0.72)", bd: "hsl(217 91% 60% / 0.45)", txt: "text-blue-400",    dot: "bg-blue-500"    },
+  emerald: { bg: "hsl(152 69% 44% / 0.72)", bd: "hsl(152 69% 44% / 0.45)", txt: "text-emerald-400", dot: "bg-emerald-500" },
+  amber:   { bg: "hsl(38 92% 50% / 0.72)",  bd: "hsl(38 92% 50% / 0.45)",  txt: "text-amber-400",   dot: "bg-amber-500"   },
 };
 
 function stripeStyle(color: PColor) {
@@ -70,197 +71,52 @@ function stripeStyle(color: PColor) {
   };
 }
 
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-
-const WEEKS: Week[] = [
-  { id: "w0", top: "May 4",  bot: "– 10",    unavail: false },
-  { id: "w1", top: "May 11", bot: "– 17",    unavail: false },
-  { id: "w2", top: "May 18", bot: "– 24",    unavail: false },
-  { id: "w3", top: "May 25", bot: "– 31",    unavail: true  },
-  { id: "w4", top: "Jun 1",  bot: "– 7",     unavail: false },
-  { id: "w5", top: "Jun 8",  bot: "– 14",    unavail: false },
-  { id: "w6", top: "Jun 15", bot: "– 21",    unavail: false },
-  { id: "w7", top: "Jun 22", bot: "– 28",    unavail: false },
-  { id: "w8", top: "Jun 29", bot: "– Jul 5", unavail: false },
-  { id: "w9", top: "Jul 6",  bot: "– 12",    unavail: false },
-];
-
-const MEMBERS: Member[] = [
-  {
-    id: "alice", name: "Alice Nguyen", role: "Senior Project Manager", initials: "AN",
-    ac: "bg-violet-500/20 text-violet-400",
-    util: [85, 85, 85, 0, 85, 85, 85, 85, 85, 85],
-    projects: [
-      { id: "P001", name: "E-Commerce Redesign", color: "violet", estH: 240, actualH: 182,
-        bars: [{ startW: 0, endW: 9, pct: 70, label: "28h" }] },
-      { id: "P004", name: "Customer Portal",     color: "sky",    estH: 80,  actualH: 55,
-        bars: [{ startW: 0, endW: 7, pct: 15, label: "6h"  }] },
-    ],
-  },
-  {
-    id: "emily", name: "Emily Ho", role: "Frontend Developer", initials: "EH",
-    ac: "bg-sky-500/20 text-sky-400",
-    util: [95, 95, 95, 0, 95, 95, 75, 75, 75, 75],
-    projects: [
-      { id: "P001", name: "E-Commerce Redesign", color: "violet", estH: 160, actualH: 120,
-        bars: [{ startW: 0, endW: 4, pct: 40, label: "16h" }] },
-      { id: "P005", name: "Analytics Dashboard", color: "blue",   estH: 200, actualH: 140,
-        bars: [{ startW: 0, endW: 9, pct: 35, label: "14h" }] },
-      { id: "P003", name: "Mobile Banking App",  color: "pink",   estH: 120,
-        bars: [{ startW: 5, endW: 9, pct: 20, label: "8h"  }] },
-    ],
-  },
-  {
-    id: "henry", name: "Henry Dao", role: "Tech Lead", initials: "HD",
-    ac: "bg-orange-500/20 text-orange-400",
-    util: [100, 100, 100, 0, 100, 110, 100, 100, 100, 100],
-    projects: [
-      { id: "P002", name: "ERP System Integration", color: "orange", estH: 300, actualH: 280,
-        bars: [{ startW: 0, endW: 9, pct: 60, label: "24h" }] },
-      { id: "P005", name: "Analytics Dashboard",    color: "blue",   estH: 240, actualH: 180,
-        bars: [{ startW: 0, endW: 9, pct: 40, label: "16h" }] },
-    ],
-  },
-  {
-    id: "carol", name: "Carol Le", role: "Backend Developer", initials: "CL",
-    ac: "bg-teal-500/20 text-teal-400",
-    util: [98, 98, 98, 0, 98, 98, 98, 98, 95, 95],
-    projects: [
-      { id: "P002", name: "ERP System Integration", color: "orange", estH: 200, actualH: 195,
-        bars: [{ startW: 0, endW: 9, pct: 50, label: "20h" }] },
-      { id: "P005", name: "Analytics Dashboard",    color: "blue",   estH: 160,
-        bars: [{ startW: 0, endW: 9, pct: 30, label: "12h" }] },
-    ],
-  },
-  {
-    id: "iris", name: "Iris Wong", role: "Scrum Master", initials: "IW",
-    ac: "bg-emerald-500/20 text-emerald-400",
-    util: [65, 65, 65, 0, 65, 65, 65, 50, 50, 50],
-    projects: [
-      { id: "P004", name: "Customer Portal",      color: "sky",  estH: 160, actualH: 100,
-        bars: [{ startW: 0, endW: 9, pct: 50, label: "20h" }] },
-      { id: "P005", name: "Analytics Dashboard",  color: "blue", estH: 60,
-        bars: [{ startW: 0, endW: 7, pct: 15, label: "6h"  }] },
-    ],
-  },
-  {
-    id: "frank", name: "Frank Vo", role: "DevOps Engineer", initials: "FV",
-    ac: "bg-rose-500/20 text-rose-400",
-    util: [60, 60, 60, 0, 60, 60, 60, 60, 60, 60],
-    projects: [
-      { id: "P006", name: "API Gateway (Complete)", color: "teal", estH: 200, actualH: 200,
-        bars: [{ startW: 0, endW: 3, pct: 50, label: "20h" }] },
-      { id: "P003", name: "Mobile Banking App",     color: "pink", estH: 40,
-        bars: [{ startW: 4, endW: 9, pct: 10, label: "4h"  }] },
-    ],
-  },
-  {
-    id: "jack", name: "Jack Chen", role: "Backend Developer", initials: "JC",
-    ac: "bg-amber-500/20 text-amber-400",
-    util: [88, 88, 88, 0, 88, 88, 70, 70, 88, 88],
-    projects: [
-      { id: "P001", name: "E-Commerce Redesign",   color: "violet", estH: 180, actualH: 140,
-        bars: [{ startW: 0, endW: 5, pct: 40, label: "16h" }] },
-      { id: "P002", name: "ERP System Integration", color: "orange", estH: 160,
-        bars: [{ startW: 3, endW: 9, pct: 30, label: "12h" }] },
-    ],
-  },
-];
-
-const PROJECTS_RC: ProjectRC[] = [
-  {
-    id: "P001", name: "E-Commerce Platform Redesign", count: 4, status: "Active",
-    budget: "$280,000", eac: "$295,000", actualFees: "$148,000",
-    barStart: 0, barEnd: 7,
-    resources: [
-      { id: "alice", name: "Alice Nguyen", initials: "AN", ac: "bg-violet-500/20 text-violet-400",
-        estH: 240, allocH: 182, util: [28, 28, 28, 0, 28, 28, 28, 28, 0, 0] },
-      { id: "emily", name: "Emily Ho",     initials: "EH", ac: "bg-sky-500/20 text-sky-400",
-        estH: 160, allocH: 120, util: [16, 16, 16, 0, 16, 0, 0, 0, 0, 0] },
-      { id: "jack",  name: "Jack Chen",    initials: "JC", ac: "bg-amber-500/20 text-amber-400",
-        estH: 180, allocH: 140, util: [16, 16, 16, 0, 16, 16, 0, 0, 0, 0] },
-    ],
-  },
-  {
-    id: "P002", name: "ERP System Integration", count: 3, status: "Active",
-    budget: "$420,000", eac: "$440,000", actualFees: "$398,000",
-    barStart: 0, barEnd: 9,
-    resources: [
-      { id: "henry", name: "Henry Dao", initials: "HD", ac: "bg-orange-500/20 text-orange-400",
-        estH: 300, allocH: 280, util: [24, 24, 24, 0, 24, 24, 24, 24, 24, 24] },
-      { id: "carol", name: "Carol Le",  initials: "CL", ac: "bg-teal-500/20 text-teal-400",
-        estH: 200, allocH: 195, util: [20, 20, 20, 0, 20, 20, 20, 20, 20, 20] },
-    ],
-  },
-  {
-    id: "P003", name: "Mobile Banking App", count: 2, status: "Active",
-    budget: "$350,000", eac: "$362,000", actualFees: "$68,000",
-    barStart: 5, barEnd: 9,
-    resources: [
-      { id: "emily", name: "Emily Ho", initials: "EH", ac: "bg-sky-500/20 text-sky-400",
-        estH: 120, allocH: 80, util: [0, 0, 0, 0, 0, 8, 8, 8, 8, 8] },
-      { id: "frank", name: "Frank Vo", initials: "FV", ac: "bg-rose-500/20 text-rose-400",
-        estH: 40,  allocH: 0,  util: [0, 0, 0, 0, 4, 4, 4, 4, 4, 4] },
-    ],
-  },
-  {
-    id: "P004", name: "Customer Portal", count: 3, status: "Active",
-    budget: "$180,000", eac: "$185,000", actualFees: "$118,000",
-    barStart: 0, barEnd: 7,
-    resources: [
-      { id: "alice", name: "Alice Nguyen", initials: "AN", ac: "bg-violet-500/20 text-violet-400",
-        estH: 80,  allocH: 55,  util: [6, 6, 6, 0, 6, 6, 6, 6, 0, 0] },
-      { id: "iris",  name: "Iris Wong",    initials: "IW", ac: "bg-emerald-500/20 text-emerald-400",
-        estH: 160, allocH: 100, util: [20, 20, 20, 0, 20, 20, 20, 20, 0, 0] },
-    ],
-  },
-  {
-    id: "P005", name: "Analytics Dashboard", count: 3, status: "Active",
-    budget: "$210,000", eac: "$225,000", actualFees: "$105,000",
-    barStart: 0, barEnd: 9,
-    resources: [
-      { id: "henry", name: "Henry Dao", initials: "HD", ac: "bg-orange-500/20 text-orange-400",
-        estH: 240, allocH: 180, util: [16, 16, 16, 0, 16, 16, 16, 16, 16, 16] },
-      { id: "carol", name: "Carol Le",  initials: "CL", ac: "bg-teal-500/20 text-teal-400",
-        estH: 160, allocH: 0,   util: [12, 12, 12, 0, 12, 12, 12, 12, 12, 12] },
-      { id: "iris",  name: "Iris Wong", initials: "IW", ac: "bg-emerald-500/20 text-emerald-400",
-        estH: 60,  allocH: 0,   util: [6,  6,  6,  0,  6,  6,  6,  6,  0,  0] },
-    ],
-  },
-  {
-    id: "P006", name: "API Gateway Modernization", count: 2, status: "Complete",
-    budget: "$120,000", eac: "$120,000", actualFees: "$114,000",
-    barStart: 0, barEnd: 3,
-    resources: [
-      { id: "frank", name: "Frank Vo",  initials: "FV", ac: "bg-rose-500/20 text-rose-400",
-        estH: 200, allocH: 200, util: [20, 20, 20, 0, 0, 0, 0, 0, 0, 0] },
-    ],
-  },
-];
+const AVATAR_CLS: Record<string, string> = {
+  violet:  "bg-violet-500/20 text-violet-400",
+  sky:     "bg-sky-500/20 text-sky-400",
+  orange:  "bg-orange-500/20 text-orange-400",
+  teal:    "bg-teal-500/20 text-teal-400",
+  emerald: "bg-emerald-500/20 text-emerald-400",
+  rose:    "bg-rose-500/20 text-rose-400",
+  amber:   "bg-amber-500/20 text-amber-400",
+  pink:    "bg-pink-500/20 text-pink-400",
+  blue:    "bg-blue-500/20 text-blue-400",
+};
 
 // ── Status badge styles (Projects tab) ────────────────────────────────────────
 
-const STATUS_CLS: Record<ProjectRC["status"], string> = {
+const STATUS_CLS: Record<ResourceCenterProject["status"], string> = {
   "Active":   "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   "Pipeline": "bg-primary/15 text-primary border-primary/30",
   "On Hold":  "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
   "Complete": "bg-muted text-muted-foreground border-border",
 };
 
+// ── Timeline bar styles per status ────────────────────────────────────────────
+
+const STATUS_BAR: Record<ResourceCenterProject["status"], {
+  bg: string; bd: string; accent: string; txt: string;
+}> = {
+  "Active":   { bg: "hsl(152 69% 44% / 0.10)", bd: "hsl(152 69% 44% / 0.28)", accent: "hsl(152 69% 44%)", txt: "hsl(152 60% 58%)" },
+  "Pipeline": { bg: "hsl(217 91% 60% / 0.10)", bd: "hsl(217 91% 60% / 0.28)", accent: "hsl(217 91% 60%)", txt: "hsl(217 80% 68%)" },
+  "On Hold":  { bg: "hsl(38  92% 50% / 0.10)", bd: "hsl(38  92% 50% / 0.28)", accent: "hsl(38  92% 50%)", txt: "hsl(38  82% 62%)" },
+  "Complete": { bg: "hsl(0   0%  55% / 0.07)", bd: "hsl(0   0%  55% / 0.18)", accent: "hsl(0   0%  50%)", txt: "hsl(0   0%  62%)" },
+};
+
 // ── VRow types ────────────────────────────────────────────────────────────────
 
 type TMVRow =
-  | { kind: "member";     m: Member }
+  | { kind: "member";     m: ResourceCenterMember }
   | { kind: "nested-hdr"; mId: string }
-  | { kind: "proj-row";   mId: string; proj: MemberProj };
+  | { kind: "proj-row";   mId: string; proj: ResourceCenterMemberProj };
 
 type PRVRow =
-  | { kind: "project";  p: ProjectRC }
-  | { kind: "resource"; pId: string; r: ResourceRow };
+  | { kind: "project";  p: ResourceCenterProject }
+  | { kind: "resource"; pId: string; r: ResourceCenterResourceRow };
 
-function buildTMRows(expanded: Set<string>): TMVRow[] {
+function buildTMRows(members: ResourceCenterMember[], expanded: Set<string>): TMVRow[] {
   const rows: TMVRow[] = [];
-  for (const m of MEMBERS) {
+  for (const m of members) {
     rows.push({ kind: "member", m });
     if (expanded.has(m.id)) {
       rows.push({ kind: "nested-hdr", mId: m.id });
@@ -270,9 +126,9 @@ function buildTMRows(expanded: Set<string>): TMVRow[] {
   return rows;
 }
 
-function buildPRRows(expanded: Set<string>): PRVRow[] {
+function buildPRRows(projects: ResourceCenterProject[], expanded: Set<string>): PRVRow[] {
   const rows: PRVRow[] = [];
-  for (const p of PROJECTS_RC) {
+  for (const p of projects) {
     rows.push({ kind: "project", p });
     if (expanded.has(p.id)) {
       for (const r of p.resources) rows.push({ kind: "resource", pId: p.id, r });
@@ -293,7 +149,7 @@ function UtilCell({ pct, unavail, gray }: { pct: number; unavail: boolean; gray?
       {hours === 0
         ? <span className="text-[11px] text-muted-foreground/30">–</span>
         : <span className={`text-[11px] font-semibold tabular-nums ${gray ? "text-muted-foreground" : pct > 100 ? "text-destructive" : "text-primary"}`}>
-            {hours}h
+            {hours}
           </span>
       }
     </div>
@@ -302,10 +158,10 @@ function UtilCell({ pct, unavail, gray }: { pct: number; unavail: boolean; gray?
 
 // ── Week header cells (shared) ────────────────────────────────────────────────
 
-function WeekHeaders() {
+function WeekHeaders({ weeks }: { weeks: ResourceCenterWeek[] }) {
   return (
     <>
-      {WEEKS.map((w) => (
+      {weeks.map((w) => (
         <div
           key={w.id}
           className={`flex flex-col items-center justify-end pb-1.5 border-r border-border/30 flex-shrink-0 ${w.unavail ? "bg-muted/40" : ""}`}
@@ -322,10 +178,10 @@ function WeekHeaders() {
 
 // ── Grid lines overlay (reusable for relative containers) ─────────────────────
 
-function WeekGridLines({ height }: { height: number }) {
+function WeekGridLines({ weeks, height }: { weeks: ResourceCenterWeek[]; height: number }) {
   return (
     <>
-      {WEEKS.map((w, wi) => (
+      {weeks.map((w, wi) => (
         <div
           key={w.id}
           className={`absolute inset-y-0 border-r border-border/20 ${w.unavail ? "bg-muted/10" : ""}`}
@@ -399,7 +255,15 @@ function TabBar({ active, onChange }: { active: string; onChange: (v: "members" 
   );
 }
 
-function Toolbar({ scale, onScale }: { scale: Scale; onScale: (s: Scale) => void }) {
+function Toolbar({
+  scale,
+  onScale,
+  onShowLegend,
+}: {
+  scale: Scale;
+  onScale: (s: Scale) => void;
+  onShowLegend: () => void;
+}) {
   return (
     <div className="bg-card border-b border-border px-4 py-2 flex items-center gap-2.5">
       <div className="flex items-center gap-1">
@@ -435,7 +299,7 @@ function Toolbar({ scale, onScale }: { scale: Scale; onScale: (s: Scale) => void
       <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
         <Settings className="w-4 h-4" />
       </button>
-      <button className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded border border-border text-muted-foreground hover:bg-muted transition-colors">
+      <button onClick={onShowLegend} className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded border border-border text-muted-foreground hover:bg-muted transition-colors">
         <BookOpen className="w-3 h-3" />
         Legend
       </button>
@@ -443,11 +307,117 @@ function Toolbar({ scale, onScale }: { scale: Scale; onScale: (s: Scale) => void
   );
 }
 
+// ── EditableHourCell ──────────────────────────────────────────────────────────
+
+function EditableHourCell({
+  hours,
+  unavail,
+  color,
+  memberCode,
+  projectCode,
+  weekIso,
+  rowHeight,
+  onOptimistic,
+}: {
+  hours: number;
+  unavail: boolean;
+  color: PColor;
+  memberCode: string;
+  projectCode: string;
+  weekIso: string;
+  rowHeight: number;
+  onOptimistic: (key: string, hours: number) => void;
+}) {
+  const [editing, setEditing]   = useState(false);
+  const [draft,   setDraft]     = useState("");
+  const [saving,  setSaving]    = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) { inputRef.current?.focus(); inputRef.current?.select(); }
+  }, [editing]);
+
+  const startEdit = () => {
+    setDraft(hours > 0 ? String(hours) : "");
+    setEditing(true);
+  };
+
+  const commit = useCallback(async () => {
+    const next = draft === "" ? 0 : Number(draft);
+    setEditing(false);
+    if (Number.isNaN(next) || next < 0 || next === hours) return;
+    const key = `${memberCode}:${projectCode}:${weekIso}`;
+    onOptimistic(key, next);
+    setSaving(true);
+    const result = await updateWeeklyAllocation(memberCode, projectCode, weekIso, next);
+    setSaving(false);
+    if (!result.ok) onOptimistic(key, hours);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, hours, memberCode, projectCode, weekIso, onOptimistic]);
+
+  if (editing) {
+    return (
+      <div
+        className={`relative flex items-center justify-center border-r border-primary/60 flex-shrink-0 bg-primary/5 ring-1 ring-inset ring-primary/30 ${unavail ? "bg-primary/10" : ""}`}
+        style={{ width: WEEK_W, height: rowHeight }}
+      >
+        <input
+          ref={inputRef}
+          type="number"
+          min="0"
+          step="1"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); void commit(); }
+            if (e.key === "Escape") setEditing(false);
+          }}
+          onBlur={() => void commit()}
+          className="w-14 rounded border border-primary/60 bg-background px-1.5 py-0.5 text-center text-xs font-semibold outline-none tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={startEdit}
+      className={`group/cell flex items-center justify-center border-r border-border/20 flex-shrink-0 transition-colors hover:bg-primary/5 hover:border-r-primary/20 cursor-text ${unavail ? "bg-muted/15" : ""} ${saving ? "opacity-50 pointer-events-none" : ""}`}
+      style={{ width: WEEK_W, height: rowHeight }}
+      title={hours > 0 ? `${hours}h — click to edit` : "Click to set hours"}
+    >
+      {hours > 0 ? (
+        <div
+          className="min-w-8 px-2 py-1 rounded text-[10px] font-semibold text-white/90 text-center group-hover/cell:opacity-75 transition-opacity"
+          style={stripeStyle(color)}
+        >
+          {hours}
+        </div>
+      ) : (
+        <span className="text-[11px] text-muted-foreground/30 group-hover/cell:text-muted-foreground/50 transition-colors">–</span>
+      )}
+    </button>
+  );
+}
+
 // ── Team Members View ─────────────────────────────────────────────────────────
 
-function TeamMembersView({ expanded, toggle }: { expanded: Set<string>; toggle: (id: string) => void }) {
-  const rows = buildTMRows(expanded);
-  const totalW = WEEKS.length * WEEK_W;
+function TeamMembersView({
+  weeks,
+  members,
+  expanded,
+  toggle,
+  onOptimistic,
+}: {
+  weeks: ResourceCenterWeek[];
+  members: ResourceCenterMember[];
+  expanded: Set<string>;
+  toggle: (id: string) => void;
+  onOptimistic: (key: string, hours: number) => void;
+}) {
+  const rows = buildTMRows(members, expanded);
+  const totalW = weeks.length * WEEK_W;
 
   return (
     <div className="overflow-auto h-full">
@@ -463,7 +433,7 @@ function TeamMembersView({ expanded, toggle }: { expanded: Set<string>; toggle: 
             <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide" style={{ width: 148 }}>Role</div>
             <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide" style={{ width: 76 }}>Actions</div>
           </div>
-          <WeekHeaders />
+          <WeekHeaders weeks={weeks} />
         </div>
 
         {/* ── Rows ──────────────────────────────────────────────────── */}
@@ -490,7 +460,7 @@ function TeamMembersView({ expanded, toggle }: { expanded: Set<string>; toggle: 
                         : <ChevronRight className="w-3.5 h-3.5" />
                       }
                     </button>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${m.ac}`}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${AVATAR_CLS[m.avatarColor] ?? "bg-muted text-muted-foreground"}`}>
                       {m.initials}
                     </div>
                     <span className="text-xs font-semibold truncate">{m.name}</span>
@@ -509,7 +479,7 @@ function TeamMembersView({ expanded, toggle }: { expanded: Set<string>; toggle: 
                 </div>
                 {/* Right: util cells */}
                 <div className={`flex items-stretch transition-colors group-hover:bg-muted/20 ${exp ? "!bg-muted/10 group-hover:!bg-muted/20" : ""}`} style={{ height: ROW_H }}>
-                  {WEEKS.map((w, wi) => (
+                  {weeks.map((w, wi) => (
                     <UtilCell key={w.id} pct={m.util[wi] ?? 0} unavail={w.unavail} />
                   ))}
                 </div>
@@ -525,14 +495,14 @@ function TeamMembersView({ expanded, toggle }: { expanded: Set<string>; toggle: 
                   className="sticky left-0 z-10 bg-muted/30 flex items-center border-r-2 border-border/60 flex-shrink-0"
                   style={{ width: TM_LEFT }}
                 >
-                  <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider px-3" style={{ width: 140 }}>Project</div>
-                  <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider"       style={{ width: 96  }}>Est. Hours</div>
-                  <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider"       style={{ width: 96  }}>Actual</div>
-                  <div style={{ width: 92 }} />
+                  <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider px-3" style={{ width: 228 }}>Project</div>
+                  <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider"       style={{ width: 64  }}>Est.h</div>
+                  <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider"       style={{ width: 60  }}>Actual</div>
+                  <div style={{ width: 72 }} />
                 </div>
                 {/* Right: empty week cells */}
                 <div className="flex" style={{ height: NEST_H }}>
-                  {WEEKS.map((w) => (
+                  {weeks.map((w) => (
                     <div key={w.id} className={`border-r border-border/20 flex-shrink-0 ${w.unavail ? "bg-muted/15" : ""}`} style={{ width: WEEK_W }} />
                   ))}
                 </div>
@@ -553,26 +523,26 @@ function TeamMembersView({ expanded, toggle }: { expanded: Set<string>; toggle: 
                   {/* Accent bar */}
                   <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${color.dot}`} />
                   {/* Project col */}
-                  <div className="flex items-center gap-1.5 pl-4" style={{ width: 140 }}>
+                  <div className="flex items-center gap-1.5 pl-4" style={{ width: 228 }}>
                     <ChevronRight className={`w-3 h-3 flex-shrink-0 ${color.txt}`} />
                     <Folder className={`w-3 h-3 flex-shrink-0 ${color.txt}`} />
                     <Link
                       href={`/v2/${proj.id}`}
-                      className={`text-[11px] font-medium truncate underline underline-offset-2 decoration-dotted ${color.txt} hover:opacity-80 transition-opacity`}
+                      className={`text-xs font-medium underline underline-offset-2 decoration-dotted ${color.txt} hover:opacity-80 transition-opacity`}
                     >
                       {proj.name}
                     </Link>
                   </div>
                   {/* Est. Hours */}
-                  <div className="text-[11px] text-muted-foreground tabular-nums" style={{ width: 96 }}>
+                  <div className="text-[11px] text-muted-foreground tabular-nums" style={{ width: 64 }}>
                     {proj.estH}h
                   </div>
                   {/* Actual */}
-                  <div className="text-[11px] text-muted-foreground tabular-nums" style={{ width: 96 }}>
+                  <div className="text-[11px] text-muted-foreground tabular-nums" style={{ width: 60 }}>
                     {proj.actualH != null ? `${proj.actualH}h` : "—"}
                   </div>
                   {/* Actions */}
-                  <div className="flex items-center gap-1" style={{ width: 92 }}>
+                  <div className="flex items-center gap-1" style={{ width: 72 }}>
                     <button className="w-5 h-5 rounded text-muted-foreground hover:bg-muted flex items-center justify-center transition-colors">
                       <MoreHorizontal className="w-3 h-3" />
                     </button>
@@ -581,29 +551,21 @@ function TeamMembersView({ expanded, toggle }: { expanded: Set<string>; toggle: 
                     </button>
                   </div>
                 </div>
-                {/* Right: allocation bars */}
-                <div className="relative flex-shrink-0" style={{ width: totalW, height: NEST_ROW }}>
-                  <WeekGridLines height={NEST_ROW} />
-                  {proj.bars.map((bar, bi) => {
-                    const left  = bar.startW * WEEK_W + 3;
-                    const width = (bar.endW - bar.startW + 1) * WEEK_W - 6;
-                    return (
-                      <div
-                        key={bi}
-                        className="absolute rounded flex items-center justify-center overflow-hidden cursor-default"
-                        style={{
-                          left, width, height: 22,
-                          top: "50%", transform: "translateY(-50%)",
-                          ...stripeStyle(proj.color),
-                        }}
-                        title={`${proj.name}: ${bar.pct}% allocation (${bar.label}/week)`}
-                      >
-                        <span className="text-[9px] font-semibold text-white/90 px-1.5 truncate pointer-events-none">
-                          {bar.pct}% ({bar.label})
-                        </span>
-                      </div>
-                    );
-                  })}
+                {/* Right: allocation hours by week — inline-editable */}
+                <div className="flex items-stretch flex-shrink-0" style={{ width: totalW, height: NEST_ROW }}>
+                  {weeks.map((w, wi) => (
+                    <EditableHourCell
+                      key={w.id}
+                      hours={proj.weeklyHours[wi] ?? 0}
+                      unavail={w.unavail}
+                      color={proj.color}
+                      memberCode={row.mId}
+                      projectCode={proj.id}
+                      weekIso={w.iso}
+                      rowHeight={NEST_ROW}
+                      onOptimistic={onOptimistic}
+                    />
+                  ))}
                 </div>
               </div>
             );
@@ -618,9 +580,19 @@ function TeamMembersView({ expanded, toggle }: { expanded: Set<string>; toggle: 
 
 // ── Projects View ─────────────────────────────────────────────────────────────
 
-function ProjectsView({ expanded, toggle }: { expanded: Set<string>; toggle: (id: string) => void }) {
-  const rows   = buildPRRows(expanded);
-  const totalW = WEEKS.length * WEEK_W;
+function ProjectsView({
+  weeks,
+  projects,
+  expanded,
+  toggle,
+}: {
+  weeks: ResourceCenterWeek[];
+  projects: ResourceCenterProject[];
+  expanded: Set<string>;
+  toggle: (id: string) => void;
+}) {
+  const rows   = buildPRRows(projects, expanded);
+  const totalW = weeks.length * WEEK_W;
 
   return (
     <div className="overflow-auto h-full">
@@ -632,12 +604,12 @@ function ProjectsView({ expanded, toggle }: { expanded: Set<string>; toggle: (id
             className="sticky left-0 z-30 bg-muted/40 flex items-end pb-2 px-3 gap-0 border-r-2 border-border/60 flex-shrink-0"
             style={{ width: PR_LEFT }}
           >
-            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide" style={{ width: 196 }}>Project</div>
-            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide" style={{ width: 96  }}>Status</div>
-            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide" style={{ width: 82  }}>Budget</div>
-            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide" style={{ width: 72  }}>Actions</div>
+            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide" style={{ width: 260 }}>Project</div>
+            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide" style={{ width: 84  }}>Status</div>
+            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide" style={{ width: 56  }}>Budget</div>
+            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide" style={{ width: 46  }}>Actions</div>
           </div>
-          <WeekHeaders />
+          <WeekHeaders weeks={weeks} />
         </div>
 
         {/* ── Rows ──────────────────────────────────────────────────── */}
@@ -654,7 +626,7 @@ function ProjectsView({ expanded, toggle }: { expanded: Set<string>; toggle: (id
                   style={{ width: PR_LEFT }}
                 >
                   {/* Project col */}
-                  <div className="flex items-center gap-1.5" style={{ width: 196 }}>
+                  <div className="flex items-center gap-1.5" style={{ width: 260 }}>
                     <button
                       onClick={() => toggle(p.id)}
                       className="text-muted-foreground hover:text-foreground flex-shrink-0 p-0.5"
@@ -665,23 +637,23 @@ function ProjectsView({ expanded, toggle }: { expanded: Set<string>; toggle: (id
                       }
                     </button>
                     <Folder className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                    <span className="text-xs font-semibold truncate">{p.name}</span>
+                    <span className="text-xs font-semibold">{p.name}</span>
                     <span className="flex-shrink-0 text-[9px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full leading-none">
                       {p.count}
                     </span>
                   </div>
                   {/* Status col */}
-                  <div style={{ width: 96 }}>
+                  <div style={{ width: 84 }}>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${STATUS_CLS[p.status]}`}>
                       {p.status}
                     </span>
                   </div>
                   {/* Budget col */}
-                  <div className="text-[11px] text-muted-foreground tabular-nums" style={{ width: 82 }}>
+                  <div className="text-[11px] text-muted-foreground tabular-nums" style={{ width: 56 }}>
                     {p.budget}
                   </div>
                   {/* Actions col */}
-                  <div className="flex items-center gap-1" style={{ width: 72 }}>
+                  <div className="flex items-center gap-1" style={{ width: 46 }}>
                     <button className="w-5 h-5 rounded bg-primary/15 text-primary hover:bg-primary/25 flex items-center justify-center transition-colors">
                       <Plus className="w-3 h-3" />
                     </button>
@@ -690,27 +662,45 @@ function ProjectsView({ expanded, toggle }: { expanded: Set<string>; toggle: (id
                     </button>
                   </div>
                 </div>
-                {/* Right: financial bar */}
+                {/* Right: project timeline bar */}
                 <div
-                  className={`relative flex-shrink-0 transition-colors group-hover:bg-muted/20 ${exp ? "!bg-muted/10 group-hover:!bg-muted/20" : ""}`}
+                  className={`relative flex-shrink-0 transition-colors ${exp ? "bg-muted/10 group-hover:bg-muted/15" : "group-hover:bg-muted/10"}`}
                   style={{ width: totalW, height: ROW_H }}
                 >
-                  <WeekGridLines height={ROW_H} />
-                  <div
-                    className="absolute flex items-center px-2 rounded overflow-hidden"
-                    style={{
-                      left:   p.barStart * WEEK_W + 4,
-                      width:  (p.barEnd - p.barStart + 1) * WEEK_W - 8,
-                      height: 20,
-                      top: "50%", transform: "translateY(-50%)",
-                      background: "hsl(var(--muted-foreground) / 0.12)",
-                      border: "1px solid hsl(var(--border))",
-                    }}
-                  >
-                    <span className="text-[10px] text-muted-foreground font-medium truncate">
-                      Actual: {p.actualFees} · EAC: {p.eac}
-                    </span>
-                  </div>
+                  <WeekGridLines weeks={weeks} height={ROW_H} />
+                  {p.barEnd >= p.barStart && (
+                    <div
+                      className="absolute flex items-center overflow-hidden rounded-md pointer-events-none"
+                      style={{
+                        left:   p.barStart * WEEK_W + 3,
+                        width:  (p.barEnd - p.barStart + 1) * WEEK_W - 6,
+                        top: 5, bottom: 5,
+                        background: STATUS_BAR[p.status].bg,
+                        border:     `1px solid ${STATUS_BAR[p.status].bd}`,
+                      }}
+                    >
+                      {/* Left accent stripe */}
+                      <div
+                        className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-sm flex-shrink-0"
+                        style={{ background: STATUS_BAR[p.status].accent }}
+                      />
+                      {/* Actual fees label */}
+                      <div className="pl-3.5 pr-2 flex flex-col justify-center gap-px flex-shrink-0 min-w-0">
+                        <span className="text-[8.5px] leading-none text-muted-foreground/60 uppercase tracking-wide">Actual</span>
+                        <span className="text-[10px] font-semibold leading-none tabular-nums" style={{ color: STATUS_BAR[p.status].txt }}>
+                          {p.actualFees}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0" />
+                      {/* EAC label */}
+                      <div className="px-2.5 flex flex-col justify-center gap-px items-end flex-shrink-0 min-w-0">
+                        <span className="text-[8.5px] leading-none text-muted-foreground/60 uppercase tracking-wide">EAC</span>
+                        <span className="text-[10px] font-medium leading-none tabular-nums text-muted-foreground">
+                          {p.eac}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -726,27 +716,27 @@ function ProjectsView({ expanded, toggle }: { expanded: Set<string>; toggle: (id
                   style={{ width: PR_LEFT }}
                 >
                   {/* Resource col (indented) */}
-                  <div className="flex items-center gap-1.5 pl-8" style={{ width: 196 }}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${r.ac}`}>
+                  <div className="flex items-center gap-1.5 pl-8" style={{ width: 260 }}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${AVATAR_CLS[r.avatarColor] ?? "bg-muted text-muted-foreground"}`}>
                       {r.initials}
                     </div>
-                    <Link href="/v2" className="text-[11px] font-medium text-primary underline underline-offset-2 decoration-dotted hover:opacity-80 transition-opacity truncate">
+                    <Link href="/v2" className="text-xs font-medium text-primary underline underline-offset-2 decoration-dotted hover:opacity-80 transition-opacity">
                       {r.name}
                     </Link>
                   </div>
                   {/* Est. hours */}
-                  <div className="text-[11px] text-muted-foreground tabular-nums" style={{ width: 96 }}>
+                  <div className="text-[11px] text-muted-foreground tabular-nums" style={{ width: 84 }}>
                     Est: {r.estH}h
                   </div>
                   {/* Alloc hours */}
                   <div
                     className={`text-[11px] tabular-nums font-medium ${r.allocH > r.estH ? "text-destructive" : r.allocH > 0 ? "text-foreground" : "text-muted-foreground"}`}
-                    style={{ width: 82 }}
+                    style={{ width: 56 }}
                   >
-                    {r.allocH > 0 ? `${r.allocH}h alloc` : "—"}
+                    {r.allocH > 0 ? `${r.allocH}h` : "—"}
                   </div>
                   {/* Actions */}
-                  <div className="flex items-center gap-1" style={{ width: 72 }}>
+                  <div className="flex items-center gap-1" style={{ width: 46 }}>
                     <button className="w-5 h-5 rounded text-muted-foreground hover:bg-muted flex items-center justify-center transition-colors">
                       <MoreHorizontal className="w-3 h-3" />
                     </button>
@@ -757,7 +747,7 @@ function ProjectsView({ expanded, toggle }: { expanded: Set<string>; toggle: (id
                 </div>
                 {/* Right: per-week util */}
                 <div className="flex items-stretch" style={{ height: ROW_H }}>
-                  {WEEKS.map((w, wi) => (
+                  {weeks.map((w, wi) => (
                     <UtilCell key={w.id} pct={r.util[wi] > 0 ? Math.round(r.util[wi] / 40 * 100) : 0} unavail={w.unavail} gray />
                   ))}
                 </div>
@@ -784,10 +774,10 @@ function LegendModal({ onClose }: { onClose: () => void }) {
         <h3 className="text-sm font-semibold">Legend</h3>
         <div className="space-y-2 text-xs">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <span className="text-primary font-semibold">32h</span> Normal allocation (≤100%)
+            <span className="text-primary font-semibold">32</span> Normal allocation (≤100%)
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
-            <span className="text-destructive font-semibold">44h</span> Overloaded (&gt;100%)
+            <span className="text-destructive font-semibold">44</span> Overloaded (&gt;100%)
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <span className="text-muted-foreground/40 font-semibold">–</span> No allocation / holiday
@@ -812,19 +802,59 @@ function LegendModal({ onClose }: { onClose: () => void }) {
 
 // ── ResourceCenter ────────────────────────────────────────────────────────────
 
-export function ResourceCenter() {
-  const [dark,       setDark]       = useState(true);
+export function ResourceCenter({
+  weeks,
+  members,
+  projects,
+}: {
+  weeks: ResourceCenterWeek[];
+  members: ResourceCenterMember[];
+  projects: ResourceCenterProject[];
+}) {
+  const dark = true;
   const [activeTab,  setActiveTab]  = useState<"members" | "projects">("members");
   const [scale,      setScale]      = useState<Scale>("W");
   const [tmExpanded, setTmExpanded] = useState<Set<string>>(new Set());
   const [prExpanded, setPrExpanded] = useState<Set<string>>(new Set());
   const [showLegend, setShowLegend] = useState(false);
+  const [overrides, setOverrides] = useState<Record<string, number>>({});
+
+  const membersView = useMemo(() => members.map((member) => {
+    const projectsForMember = member.projects.map((project) => ({
+      ...project,
+      weeklyHours: project.weeklyHours.map((hours, index) => overrides[`${member.id}:${project.id}:${weeks[index]?.iso}`] ?? hours),
+    }));
+    const util = weeks.map((_, index) => {
+      const totalHours = projectsForMember.reduce((sum, project) => sum + (project.weeklyHours[index] ?? 0), 0);
+      return Math.round((totalHours / 40) * 1000) / 10;
+    });
+    return {
+      ...member,
+      projects: projectsForMember,
+      util,
+    };
+  }), [members, overrides, weeks]);
+
+  const projectsView = useMemo(() => projects.map((project) => ({
+    ...project,
+    resources: project.resources.map((resource) => ({
+      ...resource,
+      util: resource.util.map((hours, index) => {
+        const override = overrides[`${resource.id}:${project.id}:${weeks[index]?.iso}`];
+        return override ?? hours;
+      }),
+    })),
+  })), [projects, overrides, weeks]);
 
   const toggleTm = (id: string) =>
     setTmExpanded((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const togglePr = (id: string) =>
     setPrExpanded((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  const handleOptimistic = useCallback((key: string, hours: number) => {
+    setOverrides((prev) => ({ ...prev, [key]: hours }));
+  }, []);
 
   return (
     <div className={`${dark ? "dark" : ""} flex flex-col h-screen bg-background text-foreground overflow-hidden`}>
@@ -834,11 +864,12 @@ export function ResourceCenter() {
       <Toolbar
         scale={scale}
         onScale={setScale}
+        onShowLegend={() => setShowLegend(true)}
       />
       <div className="flex-1 overflow-hidden">
         {activeTab === "members"
-          ? <TeamMembersView expanded={tmExpanded} toggle={toggleTm} />
-          : <ProjectsView    expanded={prExpanded} toggle={togglePr} />
+          ? <TeamMembersView weeks={weeks} members={membersView} expanded={tmExpanded} toggle={toggleTm} onOptimistic={handleOptimistic} />
+          : <ProjectsView weeks={weeks} projects={projectsView} expanded={prExpanded} toggle={togglePr} />
         }
       </div>
       {showLegend && <LegendModal onClose={() => setShowLegend(false)} />}

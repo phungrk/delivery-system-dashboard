@@ -4,8 +4,11 @@ import fs from "fs";
 import path from "path";
 import { revalidatePath } from "next/cache";
 import { findProjectDir } from "./projectDir";
+import allocsRaw from "@/data/allocations.json";
+import { AllocationsFileSchema } from "./data-schemas";
 
 const INPUT_DIR = path.join(process.cwd(), "..", "input");
+const DATA_DIR = path.join(process.cwd(), "data");
 
 // ── File finder ──────────────────────────────────────────────────────────────
 
@@ -50,6 +53,14 @@ function lastTableRowIdx(lines: string[], sectionStart: number): number {
     if (lines[i].trimStart().startsWith("|")) return i;
   }
   return -1;
+}
+
+function isoLocalToday(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 // ── logTime ──────────────────────────────────────────────────────────────────
@@ -287,6 +298,59 @@ export async function updateTaskField(
     lines[taskRowIdx] = joinRow(cells);
     fs.writeFileSync(filePath, lines.join("\n"), "utf-8");
     revalidatePath(`/projects/${projectCode}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+// ── updateWeeklyAllocation ───────────────────────────────────────────────────
+
+export async function updateWeeklyAllocation(
+  memberCode: string,
+  projectCode: string,
+  weekStart: string,
+  hours: number,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const filePath = path.join(DATA_DIR, "allocations.json");
+    const parsed = AllocationsFileSchema.parse(
+      fs.existsSync(filePath)
+        ? JSON.parse(fs.readFileSync(filePath, "utf-8"))
+        : allocsRaw,
+    );
+
+    const record = parsed.data.find(
+      (item) => item.memberCode === memberCode && item.projectCode === projectCode,
+    );
+    if (!record) return { ok: false, error: "Allocation record not found" };
+
+    const normalizedHours = Number.isFinite(hours) ? Math.max(0, hours) : 0;
+    const existing = record.weeklyHours.find((entry) => entry.weekStart === weekStart);
+
+    if (existing) {
+      existing.hours = normalizedHours;
+    } else {
+      record.weeklyHours.push({ weekStart, hours: normalizedHours });
+      record.weeklyHours.sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+    }
+
+    const nextData = {
+      ...parsed,
+      updatedAt: isoLocalToday(),
+      data: parsed.data.map((item) =>
+        item.id === record.id
+          ? {
+              ...item,
+              weeklyHours: item.weeklyHours.sort((a, b) => a.weekStart.localeCompare(b.weekStart)),
+            }
+          : item,
+      ),
+    };
+
+    fs.writeFileSync(filePath, `${JSON.stringify(nextData, null, 2)}\n`, "utf-8");
+    revalidatePath("/v2/resource-center");
+    revalidatePath("/v2");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
