@@ -14,7 +14,7 @@ import {
 type PColor = "violet" | "sky" | "pink" | "orange" | "teal" | "blue" | "emerald" | "amber";
 type Scale  = "D" | "W" | "M";
 
-export interface ResourceCenterWeek { id: string; iso: string; top: string; bot: string; unavail: boolean }
+export interface ResourceCenterWeek { id: string; iso: string; top: string; bot: string; unavail: boolean; isCurrent: boolean }
 
 export interface ResourceCenterMemberProj {
   id: string; name: string; color: PColor;
@@ -139,11 +139,11 @@ function buildPRRows(projects: ResourceCenterProject[], expanded: Set<string>): 
 
 // ── UtilCell ──────────────────────────────────────────────────────────────────
 
-function UtilCell({ pct, unavail, gray }: { pct: number; unavail: boolean; gray?: boolean }) {
+function UtilCell({ pct, unavail, gray, isCurrent }: { pct: number; unavail: boolean; gray?: boolean; isCurrent?: boolean }) {
   const hours = pct > 0 ? Math.round(pct / 100 * 40) : 0;
   return (
     <div
-      className={`flex items-center justify-center border-r border-border/20 flex-shrink-0 ${unavail ? "bg-muted/15" : ""}`}
+      className={`flex items-center justify-center border-r border-border/20 flex-shrink-0 ${unavail ? "bg-muted/15" : isCurrent ? "bg-primary/[0.07]" : ""}`}
       style={{ width: WEEK_W, height: "100%" }}
     >
       {hours === 0
@@ -164,10 +164,10 @@ function WeekHeaders({ weeks }: { weeks: ResourceCenterWeek[] }) {
       {weeks.map((w) => (
         <div
           key={w.id}
-          className={`flex flex-col items-center justify-end pb-1.5 border-r border-border/30 flex-shrink-0 ${w.unavail ? "bg-muted/40" : ""}`}
+          className={`flex flex-col items-center justify-end pb-1.5 border-r border-border/30 flex-shrink-0 ${w.isCurrent ? "border-t-2 border-t-primary bg-primary/[0.10]" : ""} ${w.unavail ? "bg-muted/40" : ""}`}
           style={{ width: WEEK_W, height: HDR_H }}
         >
-          <span className="text-[10.5px] font-semibold leading-tight">{w.top}</span>
+          <span className={`text-[10.5px] font-semibold leading-tight ${w.isCurrent ? "text-primary" : ""}`}>{w.top}</span>
           <span className="text-[9px] text-muted-foreground leading-tight">{w.bot}</span>
           {w.unavail && <span className="text-[8px] text-muted-foreground/50 leading-tight">holiday</span>}
         </div>
@@ -184,7 +184,7 @@ function WeekGridLines({ weeks, height }: { weeks: ResourceCenterWeek[]; height:
       {weeks.map((w, wi) => (
         <div
           key={w.id}
-          className={`absolute inset-y-0 border-r border-border/20 ${w.unavail ? "bg-muted/10" : ""}`}
+          className={`absolute inset-y-0 border-r border-border/20 ${w.isCurrent ? "bg-primary/[0.06]" : ""} ${w.unavail ? "bg-muted/10" : ""}`}
           style={{ left: wi * WEEK_W, width: WEEK_W, height }}
         />
       ))}
@@ -317,6 +317,7 @@ function EditableHourCell({
   projectCode,
   weekIso,
   rowHeight,
+  isCurrent,
   onOptimistic,
 }: {
   hours: number;
@@ -326,6 +327,7 @@ function EditableHourCell({
   projectCode: string;
   weekIso: string;
   rowHeight: number;
+  isCurrent?: boolean;
   onOptimistic: (key: string, hours: number) => void;
 }) {
   const [editing, setEditing]   = useState(false);
@@ -383,7 +385,7 @@ function EditableHourCell({
     <button
       type="button"
       onClick={startEdit}
-      className={`group/cell flex items-center justify-center border-r border-border/20 flex-shrink-0 transition-colors hover:bg-primary/5 hover:border-r-primary/20 cursor-text ${unavail ? "bg-muted/15" : ""} ${saving ? "opacity-50 pointer-events-none" : ""}`}
+      className={`group/cell flex items-center justify-center border-r border-border/20 flex-shrink-0 transition-colors hover:bg-primary/5 hover:border-r-primary/20 cursor-text ${unavail ? "bg-muted/15" : isCurrent ? "bg-primary/[0.07]" : ""} ${saving ? "opacity-50 pointer-events-none" : ""}`}
       style={{ width: WEEK_W, height: rowHeight }}
       title={hours > 0 ? `${hours}h — click to edit` : "Click to set hours"}
     >
@@ -480,7 +482,7 @@ function TeamMembersView({
                 {/* Right: util cells */}
                 <div className={`flex items-stretch transition-colors group-hover:bg-muted/20 ${exp ? "!bg-muted/10 group-hover:!bg-muted/20" : ""}`} style={{ height: ROW_H }}>
                   {weeks.map((w, wi) => (
-                    <UtilCell key={w.id} pct={m.util[wi] ?? 0} unavail={w.unavail} />
+                    <UtilCell key={w.id} pct={m.util[wi] ?? 0} unavail={w.unavail} isCurrent={w.isCurrent} />
                   ))}
                 </div>
               </div>
@@ -503,7 +505,7 @@ function TeamMembersView({
                 {/* Right: empty week cells */}
                 <div className="flex" style={{ height: NEST_H }}>
                   {weeks.map((w) => (
-                    <div key={w.id} className={`border-r border-border/20 flex-shrink-0 ${w.unavail ? "bg-muted/15" : ""}`} style={{ width: WEEK_W }} />
+                    <div key={w.id} className={`border-r border-border/20 flex-shrink-0 ${w.unavail ? "bg-muted/15" : w.isCurrent ? "bg-primary/[0.07]" : ""}`} style={{ width: WEEK_W }} />
                   ))}
                 </div>
               </div>
@@ -563,6 +565,7 @@ function TeamMembersView({
                       projectCode={proj.id}
                       weekIso={w.iso}
                       rowHeight={NEST_ROW}
+                      isCurrent={w.isCurrent}
                       onOptimistic={onOptimistic}
                     />
                   ))}
@@ -748,7 +751,7 @@ function ProjectsView({
                 {/* Right: per-week util */}
                 <div className="flex items-stretch" style={{ height: ROW_H }}>
                   {weeks.map((w, wi) => (
-                    <UtilCell key={w.id} pct={r.util[wi] > 0 ? Math.round(r.util[wi] / 40 * 100) : 0} unavail={w.unavail} gray />
+                    <UtilCell key={w.id} pct={r.util[wi] > 0 ? Math.round(r.util[wi] / 40 * 100) : 0} unavail={w.unavail} gray isCurrent={w.isCurrent} />
                   ))}
                 </div>
               </div>

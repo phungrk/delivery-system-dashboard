@@ -28,8 +28,16 @@ function isoLocalDate(d: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+function currentWeekMonday(): string {
+  const today = new Date();
+  const day = today.getDay(); // 0=Sun
+  const diff = day === 0 ? -6 : 1 - day;
+  return isoLocalDate(shiftDays(today, diff));
+}
+
 export default function ResourceCenterPage() {
   const viewportDates = buildViewportWeeks(12, -2);
+  const currentIso = currentWeekMonday();
 
   const weeks: ResourceCenterWeek[] = viewportDates.map((monday, i) => {
     const friday = shiftDays(monday, 4);
@@ -43,6 +51,7 @@ export default function ResourceCenterPage() {
       top: `${MONTH_ABBR[monday.getMonth()]} ${monday.getDate()}`,
       bot: `- ${friday.getDate()}${botSuffix}`,
       unavail: isTeamOffWeek(monday),
+      isCurrent: isoLocalDate(monday) === currentIso,
     };
   });
 
@@ -58,7 +67,7 @@ export default function ResourceCenterPage() {
       if (!project) return [];
       return [{
         id: project.code,
-        name: project.name,
+        name: `[${project.domain}] ${project.name}`,
         color: project.color as ResourceCenterMember["projects"][number]["color"],
         estH: allocation.estHours,
         actualH: allocation.actualHours ?? undefined,
@@ -69,7 +78,7 @@ export default function ResourceCenterPage() {
 
   const projects: ResourceCenterProject[] = getEnrichedProjects(viewportDates).map((ep) => ({
     id: ep.code,
-    name: ep.name,
+    name: `[${ep.domain}] ${ep.name}`,
     count: ep.members.length,
     status: ep.status === "Paused" ? "On Hold" : ep.status,
     budget: `$${ep.budget.toLocaleString()}`,
