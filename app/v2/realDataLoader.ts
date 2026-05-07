@@ -1,9 +1,9 @@
 import { loadAllMetricsMerged } from "@/lib/parser/metrics";
-import { loadSprintFile } from "@/lib/parser/sprint";
+import { loadSprintFile, type Task as SprintTask } from "@/lib/parser/sprint";
 import { loadInsights } from "@/lib/parser/insights";
 import { deriveProjectStatus } from "@/lib/projectStatus";
-import type { Project, Resource, Task, Risk, KPI, Phase, PhaseStatus, Sprint, SprintPhase } from "./mockData";
-import { SPRINT_PHASES } from "./scrum";
+import type { Project, Resource, Task, Risk, KPI, Phase, PhaseStatus, Sprint, SprintPhase, ProjectRisk } from "./mockData";
+import { SPRINT_PHASES, rawToSprintPhaseIndex } from "./scrum";
 
 // ── Waterfall phase generation ────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ function getMilestoneDate(milestones: Record<string, string>, phaseName: string)
 function generateWaterfallPhases(
   currentPhaseRaw: string,
   riskLevel: "Low" | "Medium" | "High" | "Critical",
-  allTasksDone: boolean,
+  sprintTasks: SprintTask[],
   completionRate: number,
   milestones: Record<string, string>,
   today: string,
@@ -58,13 +58,20 @@ function generateWaterfallPhases(
     let progress: number;
 
     if (i < currentIdx) {
-      // Phases already passed
       status   = "Completed";
       progress = 100;
     } else if (i === currentIdx) {
-      // Active phase
+      // Check completion using only tasks tagged to this phase;
+      // fall back to all-tasks check when no phase tags are present.
+      const phaseTasks = sprintTasks.filter(
+        (t) => t.phase?.toLowerCase() === name.toLowerCase(),
+      );
+      const phaseAllDone = phaseTasks.length > 0
+        ? phaseTasks.every((t) => t.status === "Done")
+        : sprintTasks.length > 0 && sprintTasks.every((t) => t.status === "Done");
+
       const isOverdue = endDate !== "" && today > endDate;
-      if (allTasksDone) {
+      if (phaseAllDone) {
         status   = "Completed";
         progress = 100;
       } else if (isOverdue) {
@@ -104,7 +111,6 @@ function normaliseType(raw: string): "Waterfall" | "Scrum" {
 
 function mapDerivedStatus(status: ReturnType<typeof deriveProjectStatus>): Exclude<Project["status"], "Completed"> {
   if (status === "delayed") return "Delayed";
-  if (status === "at-risk" || status === "unknown") return "At Risk";
   return "On Track";
 }
 
@@ -128,17 +134,17 @@ function buildCompletedSprintPhases(): SprintPhase[] {
   return SPRINT_PHASES.map((name) => ({ name, status: "Completed", progress: 100 }));
 }
 
-function buildActiveSprintPhases(completionRate: number, riskLevel: "Low" | "Medium" | "High" | "Critical", status: Project["status"]): SprintPhase[] {
+function buildActiveSprintPhases(completionRate: number, riskLevel: "Low" | "Medium" | "High" | "Critical", status: Project["status"], currentPhaseIdx: number): SprintPhase[] {
   const activeStatus: PhaseStatus =
     status === "Delayed" ? "Delayed"
     : riskLevel === "High" || riskLevel === "Critical" ? "At Risk"
     : "On Track";
 
-  const devProgress = Math.max(10, Math.min(95, Math.round(completionRate)));
+  const activeProgress = Math.max(10, Math.min(95, Math.round(completionRate)));
 
   return SPRINT_PHASES.map((name, index) => {
-    if (index < 2) return { name, status: "Completed", progress: 100 };
-    if (index === 2) return { name, status: activeStatus, progress: devProgress };
+    if (index < currentPhaseIdx) return { name, status: "Completed", progress: 100 };
+    if (index === currentPhaseIdx) return { name, status: activeStatus, progress: activeProgress };
     return { name, status: "To Do", progress: 0 };
   });
 }
@@ -155,6 +161,7 @@ function buildScrumSeries(params: {
   doneTasks: number;
   totalTasks: number;
   goal: string;
+  currentPhaseRaw: string;
 }) {
   const targetCurrentNumber = params.sprintNumber ?? Math.max(1, params.completedSprints + 1);
   const totalSprints = Math.max(targetCurrentNumber, Math.max(1, params.totalSprints));
@@ -198,7 +205,7 @@ function buildScrumSeries(params: {
     status: params.projectStatus === "Completed" ? "Completed" : completedSprints === 0 ? "Planning" : "Active",
     phases: params.projectStatus === "Completed"
       ? buildCompletedSprintPhases()
-      : buildActiveSprintPhases(params.completionRate, params.riskLevel, params.projectStatus),
+      : buildActiveSprintPhases(params.completionRate, params.riskLevel, params.projectStatus, rawToSprintPhaseIndex(params.currentPhaseRaw)),
   };
 
   return { currentSprint, sprintHistory };
@@ -238,6 +245,7 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
       deliverable: "",
       status: mapTaskStatus(t.status),
       dueDate: t.due || "-",
+      phase: t.phase,
     }));
 
     const totalTasks   = tasks.length;
@@ -308,13 +316,12 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
 
     // Waterfall: generate phase array from currentPhase field
     const today = new Date().toISOString().split("T")[0];
-    const allTasksDone = totalTasks > 0 && doneTasks === totalTasks;
 
     const phases = projectType === "Waterfall"
       ? generateWaterfallPhases(
           sprint.currentPhase,
           m.riskLevel,
-          allTasksDone,
+          sprint.tasks,
           m.completion.completionRate,
           sprint.milestones,
           today,
@@ -344,6 +351,7 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
           doneTasks,
           totalTasks,
           goal: scrumGoal,
+          currentPhaseRaw: sprint.currentPhase,
         })
       : null;
 
@@ -353,6 +361,11 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
       client: m.projectCode,
       type: projectType,
       status,
+      risk: (
+        m.riskLevel === "Critical" || m.riskLevel === "High" ? "High" :
+        m.riskLevel === "Medium" ? "Medium" :
+        m.riskLevel === "Low"    ? "Low"    : "No"
+      ) satisfies ProjectRisk,
       priority,
       startDate: m.period.start || sprint.periodStart || "-",
       endDate: m.period.end || sprint.periodEnd || "-",

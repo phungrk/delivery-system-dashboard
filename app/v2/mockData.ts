@@ -2,7 +2,8 @@
 
 export type PhaseStatus = "Completed" | "On Track" | "At Risk" | "Delayed" | "To Do";
 export type ProjectType = "Waterfall" | "Scrum";
-export type ProjectStatus = "On Track" | "At Risk" | "Delayed" | "Completed";
+export type ProjectStatus = "On Track" | "Delayed" | "Completed";
+export type ProjectRisk = "No" | "Low" | "Medium" | "High";
 export type Priority = "High" | "Medium" | "Low";
 export type TaskStatus = "To Do" | "In Progress" | "Blocked" | "Done";
 export type RiskLevel = "High" | "Medium" | "Low";
@@ -43,6 +44,7 @@ export interface Task {
   deliverable: string;
   status: TaskStatus;
   dueDate: string;
+  phase?: string;
 }
 
 export interface Risk {
@@ -96,6 +98,7 @@ export interface Project {
   client: string;
   type: ProjectType;
   status: ProjectStatus;
+  risk: ProjectRisk;
   priority: Priority;
   startDate: string;
   endDate: string;
@@ -169,6 +172,7 @@ export const PROJECTS: Project[] = [
     client: "RetailCo Vietnam",
     type: "Waterfall",
     status: "On Track",
+    risk: "Low",
     priority: "High",
     startDate: "2026-01-15",
     endDate: "2026-07-31",
@@ -238,6 +242,7 @@ export const PROJECTS: Project[] = [
     client: "ManufacturePro Ltd",
     type: "Waterfall",
     status: "Delayed",
+    risk: "High",
     priority: "High",
     startDate: "2025-10-01",
     endDate: "2026-05-31",
@@ -308,7 +313,8 @@ export const PROJECTS: Project[] = [
     name: "Mobile Banking App",
     client: "FinanceFirst Bank",
     type: "Waterfall",
-    status: "At Risk",
+    status: "On Track",
+    risk: "High",
     priority: "Medium",
     startDate: "2026-02-01",
     endDate: "2026-09-30",
@@ -374,6 +380,7 @@ export const PROJECTS: Project[] = [
     client: "ServiceCo Group",
     type: "Scrum",
     status: "On Track",
+    risk: "Low",
     priority: "Medium",
     startDate: "2026-01-05",
     endDate: "2026-06-30",
@@ -455,7 +462,8 @@ export const PROJECTS: Project[] = [
     name: "Analytics Dashboard",
     client: "DataInsights Corp",
     type: "Scrum",
-    status: "At Risk",
+    status: "Delayed",
+    risk: "High",
     priority: "High",
     startDate: "2026-02-15",
     endDate: "2026-07-15",
@@ -533,6 +541,7 @@ export const PROJECTS: Project[] = [
     client: "Internal",
     type: "Scrum",
     status: "Completed",
+    risk: "No",
     priority: "Low",
     startDate: "2025-09-01",
     endDate: "2026-03-31",

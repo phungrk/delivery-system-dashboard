@@ -10,6 +10,7 @@ export type Task = {
   id: string;
   title: string;
   owner: string;
+  phase?: string;
   status: TaskStatus;
   estHrs: number | null;
   due: string | null;
@@ -104,6 +105,7 @@ function parseTasks(content: string, projectCode: string, today: string): Task[]
         id: id || `${projectCode}-?`,
         title: col(r, "title"),
         owner: col(r, "owner"),
+        phase: col(r, "phase") || undefined,
         status,
         estHrs,
         due,

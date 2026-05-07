@@ -27,12 +27,11 @@ const PHASE_ACCENT: Record<WaterfallPhaseName, { border: string; bg: string; tex
 
 const STATUS_CLS: Record<Project["status"], string> = {
   "On Track":  "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  "At Risk":   "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
   "Delayed":   "bg-destructive/15 text-destructive border-destructive/30",
   "Completed": "bg-blue-500/15 text-blue-400 border-blue-500/30",
 };
 const STATUS_ICON: Record<Project["status"], React.ElementType> = {
-  "On Track": TrendingUp, "At Risk": AlertTriangle, "Delayed": Clock, "Completed": CheckCircle,
+  "On Track": TrendingUp, "Delayed": Clock, "Completed": CheckCircle,
 };
 
 // ── Bucketing ─────────────────────────────────────────────────────────────────

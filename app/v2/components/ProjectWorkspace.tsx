@@ -18,7 +18,7 @@ function ProjectsSummary({ projects }: { projects: Project[] }) {
   const scrum = projects.filter((p) => p.type === "Scrum").length;
   const onTrack = projects.filter((p) => p.status === "On Track" || p.status === "Completed").length;
   const delayed = projects.filter((p) => p.status === "Delayed").length;
-  const atRisk = projects.filter((p) => p.status === "At Risk").length;
+  const atRisk = projects.filter((p) => p.risk === "High" || p.risk === "Medium").length;
   const totalBudget = projects.reduce((sum, p) => sum + p.budget.total, 0);
   const totalSpent = projects.reduce((sum, p) => sum + p.budget.spent, 0);
 

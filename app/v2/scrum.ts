@@ -22,6 +22,18 @@ export const SPRINT_PHASE_SHORT_LABEL: Record<SprintPhaseName, string> = {
   "Retrospective": "Retro",
 };
 
+export function rawToSprintPhaseIndex(raw: string): number {
+  const s = raw.toLowerCase().trim();
+  if (s.includes("plan")) return 0;
+  if (s.includes("pbi") || s.includes("approv")) return 1;
+  if (s.includes("impl") || s.includes("dev") || s.includes("build") || s.includes("ut")) return 2;
+  if (s.includes("verif") || s.includes("qa") || s.includes("fix") || s.includes("bug") || s.includes("test")) return 3;
+  if (s.includes("review")) return 4;
+  if (s.includes("release") || s.includes("deploy")) return 5;
+  if (s.includes("retro")) return 6;
+  return 2; // fallback: implementation
+}
+
 export function resolveSprintPhases(sprint?: Pick<Sprint, "status" | "phases"> | null) {
   return SPRINT_PHASES.map((name) => {
     const status = sprint?.phases?.find((phase) => phase.name === name)?.status

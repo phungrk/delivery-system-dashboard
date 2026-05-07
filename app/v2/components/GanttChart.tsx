@@ -57,7 +57,6 @@ function barWidth(s: string, e: string, minMs: number, totalMs: number, tw: numb
 
 const projectBarCls: Record<Project["status"], string> = {
   "On Track":  "bg-primary",
-  "At Risk":   "bg-yellow-500",
   "Delayed":   "bg-destructive",
   "Completed": "bg-emerald-500",
 };

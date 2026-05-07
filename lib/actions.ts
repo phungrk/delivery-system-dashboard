@@ -101,7 +101,7 @@ export async function logTime(
       fs.writeFileSync(filePath, lines.join("\n"), "utf-8");
     }
 
-    revalidatePath(`/projects/${projectCode}`);
+    revalidatePath(`/v2/${projectCode}`);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
@@ -120,7 +120,7 @@ export async function updateStatus(
     if (!filePath) return { ok: false, error: "Sprint file not found" };
 
     const today = new Date().toISOString().split("T")[0];
-    const content = fs.readFileSync(filePath, "utf-8");
+    const content = fs.readFileSync(filePath, "utf-8").replace(/\r\n/g, "\n");
     const lines = content.split("\n");
 
     // Find Tasks section
@@ -172,7 +172,7 @@ export async function updateStatus(
 
     lines[taskRowIdx] = joinRow(cells);
     fs.writeFileSync(filePath, lines.join("\n"), "utf-8");
-    revalidatePath(`/projects/${projectCode}`);
+    revalidatePath(`/v2/${projectCode}`);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
@@ -192,7 +192,8 @@ export async function updateMilestone(
     const filePath = findSprintFile(projectCode);
     if (!filePath) return { ok: false, error: "Sprint file not found" };
 
-    let content = fs.readFileSync(filePath, "utf-8");
+    // Normalize CRLF → LF so regex patterns work uniformly
+    let content = fs.readFileSync(filePath, "utf-8").replace(/\r\n/g, "\n");
     const milestoneHeader = "## Milestones";
     const lineKey = phaseName; // e.g. "Design"
 
@@ -213,11 +214,7 @@ export async function updateMilestone(
       });
 
       if (phaseLineIdx !== -1) {
-        // Replace date on existing line
-        lines[phaseLineIdx] = lines[phaseLineIdx].replace(
-          /^(-\s*[^:]+:\s*).*$/,
-          `$1${date}`,
-        );
+        lines[phaseLineIdx] = `- ${lineKey}: ${date}`;
       } else {
         // Append new line inside the section (before next section or EOF)
         lines.splice(end, 0, `- ${lineKey}: ${date}`);
@@ -242,7 +239,8 @@ export async function updateMilestone(
     }
 
     fs.writeFileSync(filePath, content, "utf-8");
-    revalidatePath(`/v2`);
+    revalidatePath(`/v2/${projectCode}`);
+    revalidatePath("/v2");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
@@ -262,7 +260,7 @@ export async function updateTaskField(
     if (!filePath) return { ok: false, error: "Sprint file not found" };
 
     const today = new Date().toISOString().split("T")[0];
-    const content = fs.readFileSync(filePath, "utf-8");
+    const content = fs.readFileSync(filePath, "utf-8").replace(/\r\n/g, "\n");
     const lines = content.split("\n");
 
     const tasksSectionIdx = lines.findIndex((l) => l.match(/^## Tasks/));
@@ -296,7 +294,7 @@ export async function updateTaskField(
 
     lines[taskRowIdx] = joinRow(cells);
     fs.writeFileSync(filePath, lines.join("\n"), "utf-8");
-    revalidatePath(`/projects/${projectCode}`);
+    revalidatePath(`/v2/${projectCode}`);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
