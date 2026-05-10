@@ -34,11 +34,6 @@ function diffMonths(a: Date, b: Date): number {
   return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
 }
 
-function msToDateStr(ms: number): string {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 // ── Bar position helpers ──────────────────────────────────────────────────────
 
 function barLeft(dateStr: string, minMs: number, totalMs: number, tw: number): number {
@@ -59,12 +54,12 @@ function getBarColor(project: Project): string {
   if (project.status === "Completed") return "bg-emerald-500";
   if (project.status === "Delayed")   return "bg-destructive";
   if (project.risk === "High" || project.risk === "Medium") return "bg-yellow-500";
-  return "bg-primary";
+  return "bg-blue-500";
 }
 
 const phaseOuterCls: Record<PhaseStatus, string> = {
   "Completed": "bg-emerald-500/20 border border-emerald-500/40",
-  "On Track":  "bg-primary/20 border border-primary/40",
+  "On Track":  "bg-blue-500/20 border border-blue-500/40",
   "At Risk":   "bg-yellow-500/20 border border-yellow-500/40",
   "Delayed":   "bg-destructive/20 border border-destructive/40",
   "To Do":     "bg-muted/30 border border-dashed border-border/50",
@@ -72,7 +67,7 @@ const phaseOuterCls: Record<PhaseStatus, string> = {
 
 const phaseFillCls: Record<PhaseStatus, string> = {
   "Completed": "bg-emerald-500",
-  "On Track":  "bg-primary",
+  "On Track":  "bg-blue-500",
   "At Risk":   "bg-yellow-500",
   "Delayed":   "bg-destructive",
   "To Do":     "",
@@ -80,7 +75,7 @@ const phaseFillCls: Record<PhaseStatus, string> = {
 
 const phaseDotCls: Record<PhaseStatus, string> = {
   "Completed": "bg-emerald-500",
-  "On Track":  "bg-primary",
+  "On Track":  "bg-blue-500",
   "At Risk":   "bg-yellow-500",
   "Delayed":   "bg-destructive",
   "To Do":     "bg-muted-foreground/30",
@@ -88,7 +83,7 @@ const phaseDotCls: Record<PhaseStatus, string> = {
 
 const phaseTextCls: Record<PhaseStatus, string> = {
   "Completed": "text-emerald-400",
-  "On Track":  "text-primary",
+  "On Track":  "text-blue-400",
   "At Risk":   "text-yellow-400",
   "Delayed":   "text-destructive",
   "To Do":     "text-muted-foreground/50",
@@ -96,7 +91,7 @@ const phaseTextCls: Record<PhaseStatus, string> = {
 
 const PHASE_SEG_COLOR: Record<string, string> = {
   "Completed": "bg-emerald-500",
-  "On Track":  "bg-primary",
+  "On Track":  "bg-blue-500",
   "At Risk":   "bg-yellow-500",
   "Delayed":   "bg-destructive",
   "To Do":     "bg-muted/40",
@@ -245,7 +240,6 @@ export function GanttChart({ projects }: { projects: Project[] }) {
     });
   };
 
-  // ── Date range ────────────────────────────────────────────────────────────
   const { minMs, totalMs, tw, months, todayX } = useMemo(() => {
     const msList: number[] = [];
     for (const p of projects) {
@@ -320,12 +314,10 @@ export function GanttChart({ projects }: { projects: Project[] }) {
 
             return (
               <div key={project.id}>
-                {/* Project header row */}
                 <div
                   className={`flex items-center hover:bg-muted/20 transition-colors ${pi > 0 ? "border-t border-border" : ""}`}
                   style={{ height: ROW_H }}
                 >
-                  {/* Left name cell */}
                   <div
                     className="flex-shrink-0 sticky left-0 z-10 bg-card flex items-center gap-2 px-3 h-full border-r border-border cursor-pointer"
                     style={{ width: LEFT_W }}
@@ -337,7 +329,7 @@ export function GanttChart({ projects }: { projects: Project[] }) {
                     }
                     <div className="min-w-0 flex-1">
                       <Link
-                        href={`/v2/${project.id}`}
+                        href={`/v4/${project.id}`}
                         onClick={(e) => e.stopPropagation()}
                         className="text-xs font-semibold truncate block hover:text-primary transition-colors"
                       >
@@ -350,7 +342,6 @@ export function GanttChart({ projects }: { projects: Project[] }) {
                     </div>
                   </div>
 
-                  {/* Timeline bar */}
                   <div className="relative flex-shrink-0 h-full" style={{ width: tw }}>
                     <GridLines count={months.length} todayX={todayX} tw={tw} />
                     <div
@@ -366,7 +357,6 @@ export function GanttChart({ projects }: { projects: Project[] }) {
                   </div>
                 </div>
 
-                {/* Sub-rows */}
                 {isExpanded && (
                   <div className="bg-muted/5">
                     {!isScrum && project.phases?.map((phase, i) => {
@@ -406,10 +396,10 @@ export function GanttChart({ projects }: { projects: Project[] }) {
       <div className="flex items-center gap-4 px-4 py-2 border-t border-border bg-muted/20 flex-wrap">
         <span className="text-[10px] font-semibold text-muted-foreground">Legend:</span>
         {[
-          { cls: "bg-primary",                                         label: "On Track" },
+          { cls: "bg-blue-500",                                        label: "On Track" },
+          { cls: "bg-emerald-500",                                     label: "Completed" },
           { cls: "bg-yellow-500",                                      label: "At Risk" },
           { cls: "bg-destructive",                                     label: "Delayed" },
-          { cls: "bg-emerald-500",                                     label: "Completed" },
           { cls: "bg-muted border border-dashed border-border",        label: "To Do" },
         ].map(({ cls, label }) => (
           <div key={label} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">

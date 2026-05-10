@@ -1,7 +1,6 @@
 import { loadAllMetricsMerged } from "@/lib/parser/metrics";
 import { loadSprintFile, type Task as SprintTask } from "@/lib/parser/sprint";
 import { loadInsights } from "@/lib/parser/insights";
-import { loadContextTeam } from "@/lib/parser/context";
 import { deriveProjectStatus } from "@/lib/projectStatus";
 import type { Project, Resource, Task, Risk, KPI, Phase, PhaseStatus, Sprint, SprintPhase, ProjectRisk } from "./mockData";
 import { SPRINT_PHASES, rawToSprintPhaseIndex } from "./scrum";
@@ -247,7 +246,6 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
       status: mapTaskStatus(t.status),
       dueDate: t.due || "-",
       phase: t.phase,
-      notes: t.notes,
     }));
 
     const totalTasks   = tasks.length;
@@ -285,14 +283,7 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
       name: w.owner,
       role: w.flag === "OVERLOADED" ? "Team Member (overloaded)" : "Team Member",
       isLead: i === 0,
-      totalTasks: w.total,
-      inProgress: w.inProgress,
-      done: w.done,
-      blocked: w.blocked,
-      flag: w.flag,
     }));
-
-    const contextTeam = loadContextTeam(m.projectCode);
 
     // ── Accumulate owner data for resources ──────────────────────────────────
     for (const w of m.workload) {
@@ -396,7 +387,6 @@ export function loadRealData(): { projects: Project[]; resources: Resource[] } {
       risks,
       dependencies: [],
       team,
-      contextTeam,
       milestones: [],
       kpis,
     } satisfies Project;

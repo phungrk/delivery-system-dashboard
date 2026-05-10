@@ -247,6 +247,73 @@ export async function updateMilestone(
   }
 }
 
+// ── updateProjectDates ────────────────────────────────────────────────────────
+
+export async function updateProjectDates(
+  projectCode: string,
+  startDate: string,
+  endDate: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const filePath = findSprintFile(projectCode);
+    if (!filePath) return { ok: false, error: "Project file not found" };
+
+    let content = fs.readFileSync(filePath, "utf-8").replace(/\r\n/g, "\n");
+    
+    // Try to update dates in the header section (first few lines)
+    const lines = content.split("\n");
+    let updated = false;
+
+    // Look for lines starting with "- Start Date:" or "- End Date:" or similar patterns
+    for (let i = 0; i < Math.min(20, lines.length); i++) {
+      if (lines[i].match(/^-?\s*Start\s*Date\s*:/i)) {
+        lines[i] = `- Start Date: ${startDate}`;
+        updated = true;
+      }
+      if (lines[i].match(/^-?\s*End\s*Date\s*:/i)) {
+        lines[i] = `- End Date: ${endDate}`;
+        updated = true;
+      }
+    }
+
+    // If not found in header, try to find ## Project section or similar
+    if (!updated) {
+      const projSectionIdx = lines.findIndex((l) => l.match(/^##\s+Project\s+Info/i) || l.match(/^##\s+Overview/i));
+      if (projSectionIdx !== -1) {
+        const nextSectionIdx = lines.findIndex((l, i) => i > projSectionIdx && l.startsWith("## "));
+        const sectionEnd = nextSectionIdx === -1 ? lines.length : nextSectionIdx;
+
+        let foundStart = false, foundEnd = false;
+        for (let i = projSectionIdx; i < sectionEnd; i++) {
+          if (lines[i].match(/Start\s*Date/i) && !foundStart) {
+            lines[i] = `- Start Date: ${startDate}`;
+            foundStart = true;
+          }
+          if (lines[i].match(/End\s*Date/i) && !foundEnd) {
+            lines[i] = `- End Date: ${endDate}`;
+            foundEnd = true;
+          }
+        }
+
+        // Add missing fields
+        if (!foundStart || !foundEnd) {
+          const insertIdx = projSectionIdx + 1;
+          if (!foundStart) lines.splice(insertIdx, 0, `- Start Date: ${startDate}`);
+          if (!foundEnd) lines.splice(insertIdx + (foundStart ? 0 : 1), 0, `- End Date: ${endDate}`);
+        }
+      }
+    }
+
+    content = lines.join("\n");
+    fs.writeFileSync(filePath, content, "utf-8");
+    revalidatePath(`/v4/${projectCode}`);
+    revalidatePath("/v4");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
 // ── updateTaskField ───────────────────────────────────────────────────────────
 
 export async function updateTaskField(

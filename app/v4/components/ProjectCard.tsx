@@ -16,7 +16,7 @@ const PRIORITY_BADGE: Record<Project["priority"], string> = {
 
 const PHASE_BAR: Record<PhaseStatus, string> = {
   "Completed": "bg-emerald-500",
-  "On Track":  "bg-primary",
+  "On Track":  "bg-blue-500",
   "At Risk":   "bg-yellow-500",
   "Delayed":   "bg-destructive",
   "To Do":     "bg-muted/50",
@@ -24,7 +24,7 @@ const PHASE_BAR: Record<PhaseStatus, string> = {
 
 const PHASE_LABEL: Record<PhaseStatus, string> = {
   "Completed": "text-emerald-400",
-  "On Track":  "text-primary",
+  "On Track":  "text-blue-400",
   "At Risk":   "text-yellow-400",
   "Delayed":   "text-destructive",
   "To Do":     "text-muted-foreground/60",
@@ -80,7 +80,7 @@ function WaterfallCardBody({ phases, endDate }: { phases: Phase[]; endDate: stri
   );
 }
 
-// ── Scrum / generic task progress body ───────────────────────────────────────
+// ── Scrum card body ───────────────────────────────────────────────────────────
 
 function ScrumCardBody({ project }: { project: Project }) {
   const sprint = project.currentSprint;
@@ -134,7 +134,7 @@ export function ProjectCard({ project: p }: ProjectCardProps) {
 
   return (
     <Link
-      href={`/v2/${p.id}`}
+      href={`/v4/${p.id}`}
       className="bg-card border border-border rounded-xl p-4 cursor-pointer flex flex-col gap-3 hover:border-primary/50 hover:shadow-lg hover:shadow-black/20 transition-all"
     >
       {/* Header */}

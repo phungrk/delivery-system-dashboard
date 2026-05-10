@@ -15,7 +15,7 @@ import {
 import { Project, PhaseStatus, Task } from "../mockData";
 import { PROJECT_STATUS_BADGE, PROJECT_STATUS_ICON } from "../statusConfig";
 import { Tabs, TabsList, TabsTrigger, TabsContent, Badge, Progress } from "../components/ui";
-import { logTime, updateStatus, updateTaskField, updateMilestone } from "@/lib/actions";
+import { logTime, updateStatus, updateTaskField, updateMilestone, updateProjectDates } from "@/lib/actions";
 import type { InsightsData, RiskSignal } from "@/lib/parser/insights";
 import { SprintTimeline } from "../components/SprintTimeline";
 
@@ -30,7 +30,7 @@ const PRIORITY_BADGE: Record<Project["priority"], string> = {
 
 const PHASE_NODE: Record<PhaseStatus, { bg: string; border: string; text: string }> = {
   "Completed": { bg: "bg-emerald-500/20", border: "border-emerald-500",  text: "text-emerald-400" },
-  "On Track":  { bg: "bg-primary/20",     border: "border-primary",      text: "text-primary" },
+  "On Track":  { bg: "bg-blue-500/20",    border: "border-blue-500",     text: "text-blue-400" },
   "At Risk":   { bg: "bg-yellow-500/20",  border: "border-yellow-500",   text: "text-yellow-400" },
   "Delayed":   { bg: "bg-destructive/20", border: "border-destructive",  text: "text-destructive" },
   "To Do":     { bg: "bg-card",           border: "border-border",       text: "text-muted-foreground/40" },
@@ -38,7 +38,7 @@ const PHASE_NODE: Record<PhaseStatus, { bg: string; border: string; text: string
 
 const PHASE_ROW: Record<PhaseStatus, { border: string; bg: string }> = {
   "Completed": { border: "border-emerald-500/25", bg: "bg-emerald-500/5" },
-  "On Track":  { border: "border-primary/30",     bg: "bg-primary/5" },
+  "On Track":  { border: "border-blue-500/30",    bg: "bg-blue-500/5" },
   "At Risk":   { border: "border-yellow-500/30",  bg: "bg-yellow-500/5" },
   "Delayed":   { border: "border-destructive/30", bg: "bg-destructive/5" },
   "To Do":     { border: "border-border",         bg: "bg-muted/20" },
@@ -46,7 +46,7 @@ const PHASE_ROW: Record<PhaseStatus, { border: string; bg: string }> = {
 
 const PHASE_STATUS_BADGE: Record<PhaseStatus, string> = {
   "Completed": "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  "On Track":  "bg-primary/15 text-primary border-primary/30",
+  "On Track":  "bg-blue-500/15 text-blue-400 border-blue-500/30",
   "At Risk":   "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
   "Delayed":   "bg-destructive/15 text-destructive border-destructive/30",
   "To Do":     "bg-muted text-muted-foreground border-border",
@@ -54,7 +54,7 @@ const PHASE_STATUS_BADGE: Record<PhaseStatus, string> = {
 
 const PHASE_PROGRESS_BAR: Record<PhaseStatus, string> = {
   "Completed": "[&>div]:bg-emerald-500",
-  "On Track":  "[&>div]:bg-primary",
+  "On Track":  "[&>div]:bg-blue-500",
   "At Risk":   "[&>div]:bg-yellow-500",
   "Delayed":   "[&>div]:bg-destructive",
   "To Do":     "[&>div]:bg-muted/50",
@@ -67,7 +67,7 @@ const PHASE_STATUS_ICON: Record<PhaseStatus, React.ElementType> = {
 
 const TASK_STATUS_BADGE: Record<string, string> = {
   "Done":        "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  "In Progress": "bg-primary/15 text-primary border-primary/30",
+  "In Progress": "bg-blue-500/15 text-blue-400 border-blue-500/30",
   "To Do":       "bg-muted text-muted-foreground border-border",
   "Blocked":     "bg-destructive/15 text-destructive border-destructive/30",
 };
@@ -295,6 +295,9 @@ function OverviewTab({ p, projectCode }: { p: Project; projectCode: string }) {
             <div className="text-xs text-muted-foreground mt-0.5">
               <EditCell task={task} field="assignee" display={task.assignee} />
             </div>
+            {task.notes && (
+              <p className="text-xs text-muted-foreground/70 mt-1.5 leading-snug italic">{task.notes}</p>
+            )}
           </div>
           <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
             <select value={task.status} onChange={(e) => handleStatusChange(task.id, e.target.value as Task["status"])}
@@ -714,19 +717,90 @@ function DependenciesTab({ p }: { p: Project }) {
 // ── Team Tab ──────────────────────────────────────────────────────────────────
 
 function TeamTab({ p }: { p: Project }) {
+  const hasContext  = p.contextTeam && p.contextTeam.length > 0;
+  const hasWorkload = p.team.length > 0;
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {p.team.map((member) => (
-        <div key={member.name} className="flex items-center gap-3 p-4 rounded-lg border border-border bg-muted/20">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${member.isLead ? "bg-primary/20 text-primary border border-primary/40" : "bg-muted text-muted-foreground"}`}>
-            {initials(member.name)}
+    <div className="space-y-8">
+
+      {/* Part 1 — Team from project context */}
+      <div>
+        <h4 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+          <Users className="w-4 h-4 text-muted-foreground" />Project Team
+        </h4>
+        {hasContext ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {p.contextTeam!.map((member) => (
+              <div key={member.name} className="flex items-start gap-3 p-4 rounded-lg border border-border bg-muted/20">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 bg-muted text-muted-foreground">
+                  {initials(member.name)}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{member.name}</p>
+                  <p className="text-xs text-muted-foreground">{member.role}</p>
+                  {member.team && (
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">{member.team}</p>
+                  )}
+                  {member.alsoOn && member.alsoOn !== "—" && (
+                    <p className="text-xs text-muted-foreground/50 mt-0.5 italic">Also on: {member.alsoOn}</p>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-          <div>
-            <p className="text-sm font-medium">{member.name}</p>
-            {member.isLead && <p className="text-xs text-primary">Project Lead</p>}
+        ) : (
+          <p className="text-sm text-muted-foreground">No team defined in project-context.md</p>
+        )}
+      </div>
+
+      {/* Part 2 — Workload from metrics */}
+      <div>
+        <h4 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
+          <TrendingUp className="w-4 h-4 text-muted-foreground" />Workload (current sprint)
+        </h4>
+        {hasWorkload ? (
+          <div className="rounded-lg border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground">Owner</th>
+                  <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground">Total</th>
+                  <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground">In Progress</th>
+                  <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground">Done</th>
+                  <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground">Blocked</th>
+                  <th className="text-center px-3 py-2 text-xs font-semibold text-muted-foreground">Flag</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {p.team.map((member) => {
+                  const isOverloaded = member.flag === "OVERLOADED";
+                  return (
+                    <tr key={member.name} className="bg-card hover:bg-muted/20 transition-colors">
+                      <td className="px-3 py-2 font-medium">{member.name}</td>
+                      <td className="px-3 py-2 text-center tabular-nums text-muted-foreground">{member.totalTasks ?? 0}</td>
+                      <td className="px-3 py-2 text-center tabular-nums text-blue-400">{member.inProgress ?? 0}</td>
+                      <td className="px-3 py-2 text-center tabular-nums text-emerald-400">{member.done ?? 0}</td>
+                      <td className="px-3 py-2 text-center tabular-nums text-destructive">{member.blocked ?? 0}</td>
+                      <td className="px-3 py-2 text-center">
+                        {isOverloaded ? (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-destructive/10 text-destructive border-destructive/30">
+                            OVERLOADED
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
-      ))}
+        ) : (
+          <p className="text-sm text-muted-foreground">No workload data in metrics.</p>
+        )}
+      </div>
+
     </div>
   );
 }
@@ -854,10 +928,27 @@ function InsightsTab({ insights }: { insights: InsightsData }) {
 
 export function ProjectDetailPage({ project: p, insights }: { project: Project; insights: InsightsData }) {
   const [dark, setDark] = useState(true);
+  const [editingDates, setEditingDates] = useState(false);
+  const [startDate, setStartDate] = useState(p.startDate);
+  const [endDate, setEndDate] = useState(p.endDate);
+  const [savingDates, setSavingDates] = useState(false);
   const today       = new Date().toISOString().split("T")[0];
   const StatusIcon  = PROJECT_STATUS_ICON[p.status];
   const activeRisks = p.risks.filter((r) => r.status === "Active").length;
   const overdueCount = p.tasks.filter((t) => t.status !== "Done" && t.dueDate && t.dueDate !== "-" && t.dueDate < today).length;
+
+  const saveDates = async () => {
+    if (startDate === p.startDate && endDate === p.endDate) {
+      setEditingDates(false);
+      return;
+    }
+    setSavingDates(true);
+    const result = await updateProjectDates(p.id, startDate, endDate);
+    setSavingDates(false);
+    if (result.ok) {
+      setEditingDates(false);
+    }
+  };
 
   return (
     <div className={`${dark ? "dark" : ""} min-h-screen bg-background text-foreground`}>
@@ -869,7 +960,7 @@ export function ProjectDetailPage({ project: p, insights }: { project: Project; 
             <p className="text-sm text-muted-foreground mt-0.5">Track projects and allocate resources</p>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/v2" className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium hover:bg-primary/20 transition-colors">
+            <Link href="/v4" className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium hover:bg-primary/20 transition-colors">
               Dashboard
             </Link>
             <button onClick={() => setDark((d) => !d)}
@@ -883,7 +974,7 @@ export function ProjectDetailPage({ project: p, insights }: { project: Project; 
       <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/v2" className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+          <Link href="/v4" className="flex items-center gap-1.5 hover:text-foreground transition-colors">
             <ArrowLeft className="w-4 h-4" />All Projects
           </Link>
           <span>/</span>
@@ -906,9 +997,49 @@ export function ProjectDetailPage({ project: p, insights }: { project: Project; 
           <h2 className="text-2xl font-bold leading-snug mb-1">{p.name}</h2>
           <div className="flex items-center justify-between flex-wrap gap-3 text-sm text-muted-foreground">
             <span className="font-medium text-foreground">{p.client}</span>
-            <div className="flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />{p.startDate} → {p.endDate}
-            </div>
+            {editingDates ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="px-2 py-1 rounded border border-border bg-muted/40 text-foreground text-sm"
+                />
+                <span>→</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="px-2 py-1 rounded border border-border bg-muted/40 text-foreground text-sm"
+                />
+                <button
+                  onClick={saveDates}
+                  disabled={savingDates}
+                  className="px-2 py-1 rounded bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/80 transition-colors disabled:opacity-50"
+                >
+                  {savingDates ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingDates(false);
+                    setStartDate(p.startDate);
+                    setEndDate(p.endDate);
+                  }}
+                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setEditingDates(true)}
+                className="flex items-center gap-1 hover:bg-muted/40 px-2 py-1 rounded transition-colors group"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>{p.startDate} → {p.endDate}</span>
+                <Pencil className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-border">

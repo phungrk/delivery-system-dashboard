@@ -3,14 +3,15 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Users, TrendingDown, Sun, Moon, FolderKanban, Search, Activity, AlertTriangle, ExternalLink,
+  Users, Sun, Moon, FolderKanban,
+  Search, Activity, AlertTriangle, TrendingDown, ExternalLink, TrendingUp,
 } from "lucide-react";
 import type { Project, Resource } from "./mockData";
-import { Tabs, TabsList, TabsTrigger, TabsContent, Input, Select } from "./components/ui";
+import { Input, Select } from "./components/ui";
 import { ResourceCard } from "./components/ResourceCard";
 import { ResourceDetailDialog } from "./components/ResourceDetailDialog";
-import { ProjectWorkspace } from "./components/ProjectWorkspace";
 import { StatCard } from "./components/StatCard";
+import { ProjectWorkspace } from "./components/ProjectWorkspace";
 
 // ── Resources Tab ─────────────────────────────────────────────────────────────
 
@@ -37,14 +38,14 @@ function ResourcesTab({ resources }: { resources: Resource[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
-          <StatCard label="Total Resources" value={String(resources.length)} sub="Team members" icon={Users} iconClass="text-primary" />
-          <StatCard label="Avg Utilization" value={`${avgUtil}%`} sub="Across all members" icon={Activity} iconClass="text-blue-400" />
-          <StatCard label="Overloaded" value={String(overloaded)} sub="≥95% allocated" icon={AlertTriangle} iconClass="text-red-400" />
-          <StatCard label="Available" value={String(available)} sub="≤70% allocated" icon={TrendingDown} iconClass="text-emerald-400" />
+          <StatCard label="Total Resources" value={String(resources.length)} sub="Team members"         icon={Users}          iconClass="text-primary" />
+          <StatCard label="Avg Utilization"  value={`${avgUtil}%`}           sub="Across all members"  icon={Activity}       iconClass="text-blue-400" />
+          <StatCard label="Overloaded"        value={String(overloaded)}      sub="≥95% allocated"      icon={AlertTriangle}  iconClass="text-red-400" />
+          <StatCard label="Available"         value={String(available)}       sub="≤70% allocated"      icon={TrendingDown}   iconClass="text-emerald-400" />
         </div>
-        <div className="ml-4 flex-shrink-0">
+        <div className="flex-shrink-0">
           <Link
             href="/v2/resource-center"
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary text-primary text-sm font-medium hover:bg-primary/10 transition-colors"
@@ -87,21 +88,27 @@ function ResourcesTab({ resources }: { resources: Resource[] }) {
   );
 }
 
+// ── Main dashboard ────────────────────────────────────────────────────────────
+
 interface Props {
   initialProjects: Project[];
   initialResources: Resource[];
 }
 
 export function DeliveryDashboard({ initialProjects, initialResources }: Props) {
-  const [dark, setDark] = useState(true);
+  const [dark, setDark]         = useState(true);
+  const [activeTab, setActiveTab] = useState<"projects" | "resources">("projects");
 
   return (
     <div className={`${dark ? "dark" : ""} min-h-screen bg-background text-foreground`}>
+
+      {/* ── App header ─────────────────────────────────────────────────────── */}
       <header className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        {/* Title row */}
+        <div className="max-w-7xl mx-auto px-6 pt-5 pb-3 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Delivery Management</h1>
-            <p className="text-sm text-muted-foreground">Track projects and allocate resources</p>
+            <h1 className="text-2xl font-bold leading-tight">Delivery Management</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Track projects and allocate resources</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -111,24 +118,40 @@ export function DeliveryDashboard({ initialProjects, initialResources }: Props) 
             >
               {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">Dashboard</span>
+            <Link href="/v2" className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors">
+              Dashboard
+            </Link>
           </div>
+        </div>
+
+        {/* Tab nav row */}
+        <div className="max-w-7xl mx-auto px-6 flex gap-1">
+          {(["projects", "resources"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex items-center gap-2 px-4 py-2 mb-[-1px] text-sm font-medium rounded-t-lg border transition-colors ${
+                activeTab === tab
+                  ? "bg-background border-border border-b-background text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
+              }`}
+            >
+              {tab === "projects"
+                ? <FolderKanban className="w-4 h-4" />
+                : <Users className="w-4 h-4" />
+              }
+              {tab === "projects" ? "Projects" : "Resources"}
+            </button>
+          ))}
         </div>
       </header>
 
+      {/* ── Page content ───────────────────────────────────────────────────── */}
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <Tabs defaultValue="project">
-          <TabsList className="border-b border-border mb-8 gap-1">
-            <TabsTrigger value="project" className="h-11 gap-2">
-              <FolderKanban className="w-4 h-4" /> Project
-            </TabsTrigger>
-            <TabsTrigger value="resource" className="h-11 gap-2">
-              <Users className="w-4 h-4" /> Resource
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="project"><ProjectWorkspace projects={initialProjects} /></TabsContent>
-          <TabsContent value="resource"><ResourcesTab resources={initialResources} /></TabsContent>
-        </Tabs>
+        {activeTab === "projects"
+          ? <ProjectWorkspace projects={initialProjects} />
+          : <ResourcesTab resources={initialResources} />
+        }
       </main>
     </div>
   );

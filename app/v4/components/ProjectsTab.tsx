@@ -20,7 +20,7 @@ const VIEW_TABS: { value: ViewMode; label: string; Icon: React.ElementType }[] =
   { value: "gantt",  label: "Gantt",       Icon: CalendarRange },
 ];
 
-export function ProjectWorkspace({ projects }: { projects: Project[] }) {
+export function ProjectsTab({ projects }: { projects: Project[] }) {
   const [search,       setSearch]       = useState("");
   const [typeFilter,   setTypeFilter]   = useState<"all" | "Waterfall" | "Scrum">("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -35,12 +35,12 @@ export function ProjectWorkspace({ projects }: { projects: Project[] }) {
   }), [projects, search, typeFilter, statusFilter]);
 
   // ── Stats ──────────────────────────────────────────────────────────────────
-  const total      = filtered.length;
-  const waterfall  = filtered.filter((p) => p.type === "Waterfall").length;
-  const scrum      = filtered.filter((p) => p.type === "Scrum").length;
-  const onTrack    = filtered.filter((p) => p.status === "On Track" || p.status === "Completed").length;
-  const delayed    = filtered.filter((p) => p.status === "Delayed").length;
-  const atRisk     = filtered.filter((p) => p.risk === "High" || p.risk === "Medium").length;
+  const total       = filtered.length;
+  const waterfall   = filtered.filter((p) => p.type === "Waterfall").length;
+  const scrum       = filtered.filter((p) => p.type === "Scrum").length;
+  const onTrack     = filtered.filter((p) => p.status === "On Track" || p.status === "Completed").length;
+  const delayed     = filtered.filter((p) => p.status === "Delayed").length;
+  const atRisk      = filtered.filter((p) => p.risk === "High" || p.risk === "Medium").length;
   const totalBudget = filtered.reduce((sum, p) => sum + p.budget.total, 0);
   const totalSpent  = filtered.reduce((sum, p) => sum + p.budget.spent, 0);
 
@@ -61,7 +61,7 @@ export function ProjectWorkspace({ projects }: { projects: Project[] }) {
           value={String(onTrack)}
           sub={`${delayed} delayed`}
           icon={CheckCircle2}
-          iconClass="text-emerald-400"
+          iconClass="text-blue-400"
         />
         <StatCard
           label="At Risk"
@@ -143,8 +143,10 @@ export function ProjectWorkspace({ projects }: { projects: Project[] }) {
       {filtered.length === 0 ? (
         <p className="text-center text-muted-foreground py-12">No projects match your filters.</p>
       ) : view === "grid" ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {filtered.map((p) => <ProjectCard key={p.id} project={p} />)}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filtered.map((p) => (
+            <ProjectCard key={p.id} project={p} />
+          ))}
         </div>
       ) : view === "phases" ? (
         <PhaseBoard projects={filtered} />

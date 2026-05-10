@@ -45,7 +45,6 @@ export interface Task {
   status: TaskStatus;
   dueDate: string;
   phase?: string;
-  notes?: string | null;
 }
 
 export interface Risk {
@@ -70,18 +69,6 @@ export interface TeamMember {
   name: string;
   role: string;
   isLead: boolean;
-  totalTasks?: number;
-  inProgress?: number;
-  done?: number;
-  blocked?: number;
-  flag?: string;
-}
-
-export interface ContextMember {
-  name: string;
-  role: string;
-  team?: string;
-  alsoOn?: string;
 }
 
 export interface BudgetMonth {
@@ -140,7 +127,6 @@ export interface Project {
   risks: Risk[];
   dependencies: Dependency[];
   team: TeamMember[];
-  contextTeam?: ContextMember[];
   milestones: Milestone[];
   kpis: KPI[];
 }

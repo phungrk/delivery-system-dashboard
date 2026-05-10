@@ -5,7 +5,7 @@ import Link from "next/link";
 import { updateWeeklyAllocation } from "@/lib/actions";
 import {
   Info, Search, HelpCircle, Bell, User,
-  ChevronLeft, ChevronRight, ChevronDown, Settings, Share2,
+  ChevronLeft, ChevronRight, ChevronDown,
   BookOpen, Folder, Plus, MoreHorizontal,
 } from "lucide-react";
 
@@ -143,7 +143,7 @@ function UtilCell({ pct, unavail, gray, isCurrent }: { pct: number; unavail: boo
   const hours = pct > 0 ? Math.round(pct / 100 * 40) : 0;
   return (
     <div
-      className={`flex items-center justify-center border-r border-border/20 flex-shrink-0 ${unavail ? "bg-muted/15" : isCurrent ? "bg-primary/[0.07]" : ""}`}
+      className={`flex items-center justify-center border-r border-border/20 flex-shrink-0 ${unavail ? "bg-muted/90" : isCurrent ? "bg-primary/[0.07]" : ""}`}
       style={{ width: WEEK_W, height: "100%" }}
     >
       {hours === 0
@@ -164,7 +164,7 @@ function WeekHeaders({ weeks }: { weeks: ResourceCenterWeek[] }) {
       {weeks.map((w) => (
         <div
           key={w.id}
-          className={`flex flex-col items-center justify-end pb-1.5 border-r border-border/30 flex-shrink-0 ${w.isCurrent ? "border-t-2 border-t-primary bg-primary/[0.10]" : ""} ${w.unavail ? "bg-muted/40" : ""}`}
+          className={`flex flex-col items-center justify-end pb-1.5 border-r border-border/30 flex-shrink-0 ${w.isCurrent ? "border-t-2 border-t-primary bg-primary/[0.10]" : ""} ${w.unavail ? "bg-muted/90" : ""}`}
           style={{ width: WEEK_W, height: HDR_H }}
         >
           <span className={`text-[10.5px] font-semibold leading-tight ${w.isCurrent ? "text-primary" : ""}`}>{w.top}</span>
@@ -184,7 +184,7 @@ function WeekGridLines({ weeks, height }: { weeks: ResourceCenterWeek[]; height:
       {weeks.map((w, wi) => (
         <div
           key={w.id}
-          className={`absolute inset-y-0 border-r border-border/20 ${w.isCurrent ? "bg-primary/[0.06]" : ""} ${w.unavail ? "bg-muted/10" : ""}`}
+          className={`absolute inset-y-0 border-r border-border/20 ${w.isCurrent ? "bg-primary/[0.06]" : ""} ${w.unavail ? "bg-muted/90" : ""}`}
           style={{ left: wi * WEEK_W, width: WEEK_W, height }}
         />
       ))}
@@ -209,7 +209,7 @@ function AppHeader() {
   return (
     <header className="bg-card border-b border-border px-4 py-2.5 flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <Link href="/v2" className="text-xs text-muted-foreground hover:text-foreground transition-colors">← Dashboard</Link>
+        <Link href="/v4" className="text-xs text-muted-foreground hover:text-foreground transition-colors">← Dashboard</Link>
         <span className="text-muted-foreground/40 text-xs">/</span>
         <h1 className="text-base font-bold">Resource Center</h1>
       </div>
@@ -278,7 +278,7 @@ function Toolbar({
       <button className="text-xs px-2.5 py-1 rounded border border-border text-muted-foreground hover:bg-muted transition-colors">
         Today
       </button>
-      <div className="flex bg-muted/40 rounded-md p-0.5 text-xs font-medium">
+      <div className="flex bg-muted/90 rounded-md p-0.5 text-xs font-medium">
         {(["D", "W", "M"] as Scale[]).map((s) => (
           <button
             key={s}
@@ -292,13 +292,6 @@ function Toolbar({
         ))}
       </div>
       <div className="flex-1" />
-      <button className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border border-primary text-primary hover:bg-primary/10 transition-colors">
-        <Share2 className="w-3 h-3" />
-        Share Feedback
-      </button>
-      <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
-        <Settings className="w-4 h-4" />
-      </button>
       <button onClick={onShowLegend} className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded border border-border text-muted-foreground hover:bg-muted transition-colors">
         <BookOpen className="w-3 h-3" />
         Legend
@@ -385,7 +378,7 @@ function EditableHourCell({
     <button
       type="button"
       onClick={startEdit}
-      className={`group/cell flex items-center justify-center border-r border-border/20 flex-shrink-0 transition-colors hover:bg-primary/5 hover:border-r-primary/20 cursor-text ${unavail ? "bg-muted/15" : isCurrent ? "bg-primary/[0.07]" : ""} ${saving ? "opacity-50 pointer-events-none" : ""}`}
+      className={`group/cell flex items-center justify-center border-r border-border/20 flex-shrink-0 transition-colors hover:bg-primary/5 hover:border-r-primary/20 cursor-text ${unavail ? "bg-muted/90" : isCurrent ? "bg-primary/[0.07]" : ""} ${saving ? "opacity-50 pointer-events-none" : ""}`}
       style={{ width: WEEK_W, height: rowHeight }}
       title={hours > 0 ? `${hours}h — click to edit` : "Click to set hours"}
     >
@@ -426,9 +419,9 @@ function TeamMembersView({
       <div style={{ minWidth: TM_LEFT + totalW }}>
 
         {/* ── Column header ─────────────────────────────────────────── */}
-        <div className="flex sticky top-0 z-20 border-b border-border bg-muted/40" style={{ height: HDR_H }}>
+        <div className="flex sticky top-0 z-20 border-b border-border bg-muted/80" style={{ height: HDR_H }}>
           <div
-            className="sticky left-0 z-30 bg-muted/40 flex items-end pb-2 px-3 gap-0 border-r-2 border-border/60 flex-shrink-0"
+            className="sticky left-0 z-30 bg-muted/90 flex items-end pb-2 px-3 gap-0 border-r-2 border-border/60 flex-shrink-0"
             style={{ width: TM_LEFT }}
           >
             <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide" style={{ width: 200 }}>Team Member</div>
@@ -448,7 +441,7 @@ function TeamMembersView({
             return (
               <div key={`m-${m.id}`} className="group flex border-b border-border/50" style={{ height: ROW_H }}>
                 <div
-                  className={`sticky left-0 z-10 flex items-center border-r-2 border-border/60 px-2 gap-0 flex-shrink-0 transition-colors bg-card group-hover:bg-muted/20 ${exp ? "!bg-muted/10 group-hover:!bg-muted/20" : ""}`}
+                  className={`sticky left-0 z-10 flex items-center border-r-2 border-border/60 px-2 gap-0 flex-shrink-0 transition-colors bg-card group-hover:bg-muted/90 ${exp ? "!bg-muted/90 group-hover:!bg-muted/90" : ""}`}
                   style={{ width: TM_LEFT }}
                 >
                   {/* Member col */}
@@ -480,7 +473,7 @@ function TeamMembersView({
                   </div>
                 </div>
                 {/* Right: util cells */}
-                <div className={`flex items-stretch transition-colors group-hover:bg-muted/20 ${exp ? "!bg-muted/10 group-hover:!bg-muted/20" : ""}`} style={{ height: ROW_H }}>
+                <div className={`flex items-stretch transition-colors group-hover:bg-muted/90 ${exp ? "!bg-muted/90 group-hover:!bg-muted/90" : ""}`} style={{ height: ROW_H }}>
                   {weeks.map((w, wi) => (
                     <UtilCell key={w.id} pct={m.util[wi] ?? 0} unavail={w.unavail} isCurrent={w.isCurrent} />
                   ))}
@@ -492,9 +485,9 @@ function TeamMembersView({
           // ── Nested sub-header ───────────────────────────────────────
           if (row.kind === "nested-hdr") {
             return (
-              <div key={`nh-${row.mId}-${i}`} className="flex border-b border-border/50 bg-muted/30" style={{ height: NEST_H }}>
+              <div key={`nh-${row.mId}-${i}`} className="flex border-b border-border/50 bg-muted/90" style={{ height: NEST_H }}>
                 <div
-                  className="sticky left-0 z-10 bg-muted/30 flex items-center border-r-2 border-border/60 flex-shrink-0"
+                  className="sticky left-0 z-10 bg-muted/90 flex items-center border-r-2 border-border/60 flex-shrink-0"
                   style={{ width: TM_LEFT }}
                 >
                   <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider px-3" style={{ width: 228 }}>Project</div>
@@ -505,7 +498,7 @@ function TeamMembersView({
                 {/* Right: empty week cells */}
                 <div className="flex" style={{ height: NEST_H }}>
                   {weeks.map((w) => (
-                    <div key={w.id} className={`border-r border-border/20 flex-shrink-0 ${w.unavail ? "bg-muted/15" : w.isCurrent ? "bg-primary/[0.07]" : ""}`} style={{ width: WEEK_W }} />
+                    <div key={w.id} className={`border-r border-border/20 flex-shrink-0 ${w.unavail ? "bg-muted/90" : w.isCurrent ? "bg-primary/[0.07]" : ""}`} style={{ width: WEEK_W }} />
                   ))}
                 </div>
               </div>
@@ -517,9 +510,9 @@ function TeamMembersView({
             const proj  = row.proj;
             const color = PC[proj.color];
             return (
-              <div key={`pr-${row.mId}-${proj.id}-${i}`} className="group flex border-b border-border/30 hover:bg-muted/15 transition-colors" style={{ height: NEST_ROW }}>
+              <div key={`pr-${row.mId}-${proj.id}-${i}`} className="group flex border-b border-border/30 hover:bg-muted/90 transition-colors" style={{ height: NEST_ROW }}>
                 <div
-                  className="sticky left-0 z-10 bg-card group-hover:bg-muted/15 flex items-center border-r-2 border-border/60 flex-shrink-0 transition-colors relative"
+                  className="sticky left-0 z-10 bg-card group-hover:bg-muted/90 flex items-center border-r-2 border-border/60 flex-shrink-0 transition-colors relative"
                   style={{ width: TM_LEFT }}
                 >
                   {/* Accent bar */}
@@ -529,7 +522,7 @@ function TeamMembersView({
                     <ChevronRight className={`w-3 h-3 flex-shrink-0 ${color.txt}`} />
                     <Folder className={`w-3 h-3 flex-shrink-0 ${color.txt}`} />
                     <Link
-                      href={`/v2/${proj.id}`}
+                      href={`/v4/${proj.id}`}
                       className={`text-xs font-medium underline underline-offset-2 decoration-dotted ${color.txt} hover:opacity-80 transition-opacity`}
                     >
                       {proj.name}
@@ -602,9 +595,9 @@ function ProjectsView({
       <div style={{ minWidth: PR_LEFT + totalW }}>
 
         {/* ── Column header ─────────────────────────────────────────── */}
-        <div className="flex sticky top-0 z-20 border-b border-border bg-muted/40" style={{ height: HDR_H }}>
+        <div className="flex sticky top-0 z-20 border-b border-border bg-muted/80" style={{ height: HDR_H }}>
           <div
-            className="sticky left-0 z-30 bg-muted/40 flex items-end pb-2 px-3 gap-0 border-r-2 border-border/60 flex-shrink-0"
+            className="sticky left-0 z-30 bg-muted/90 flex items-end pb-2 px-3 gap-0 border-r-2 border-border/60 flex-shrink-0"
             style={{ width: PR_LEFT }}
           >
             <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide" style={{ width: 260 }}>Project</div>
@@ -625,7 +618,7 @@ function ProjectsView({
             return (
               <div key={`p-${p.id}`} className="group flex border-b border-border/50" style={{ height: ROW_H }}>
                 <div
-                  className={`sticky left-0 z-10 flex items-center border-r-2 border-border/60 px-2 flex-shrink-0 transition-colors bg-card group-hover:bg-muted/20 ${exp ? "!bg-muted/10 group-hover:!bg-muted/20" : ""}`}
+                  className={`sticky left-0 z-10 flex items-center border-r-2 border-border/60 px-2 flex-shrink-0 transition-colors bg-card group-hover:bg-muted/90 ${exp ? "!bg-muted/90 group-hover:!bg-muted/90" : ""}`}
                   style={{ width: PR_LEFT }}
                 >
                   {/* Project col */}
@@ -723,7 +716,7 @@ function ProjectsView({
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 ${AVATAR_CLS[r.avatarColor] ?? "bg-muted text-muted-foreground"}`}>
                       {r.initials}
                     </div>
-                    <Link href="/v2" className="text-xs font-medium text-primary underline underline-offset-2 decoration-dotted hover:opacity-80 transition-opacity">
+                    <Link href="/v4" className="text-xs font-medium text-primary underline underline-offset-2 decoration-dotted hover:opacity-80 transition-opacity">
                       {r.name}
                     </Link>
                   </div>
